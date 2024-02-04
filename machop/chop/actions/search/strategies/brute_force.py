@@ -4,6 +4,7 @@ import logging
 from tabulate import tabulate
 import numpy as np
 import itertools
+import time
 from functools import partial
 from .base import SearchStrategyBase
 from mpl_toolkits.mplot3d import Axes3D
@@ -34,8 +35,9 @@ class SearchStrategyBruteForce(SearchStrategyBase):
       plt.colorbar(sc, label='Accuracy')
       plt.show()
 
-    def is_dominated(self, row, other):
-      return (row['loss'] >= other['loss'] and
+    def is_dominated(self, row, other, show_loss=False):
+      if show_loss:
+        return (row['loss'] >= other['loss'] and
               row['accuracy'] <= other['accuracy'] and
               row['average_bitwidth'] >= other['average_bitwidth'] and
               row['memory_density'] >= other['memory_density'] and
@@ -43,7 +45,14 @@ class SearchStrategyBruteForce(SearchStrategyBase):
               row['accuracy'] < other['accuracy'] or
               row['average_bitwidth'] > other['average_bitwidth'] or
               row['memory_density'] > other['memory_density']))
-
+      else:        
+        return (row['accuracy'] <= other['accuracy'] and
+            row['average_bitwidth'] >= other['average_bitwidth'] and
+            row['memory_density'] <= other['memory_density'] and
+            (row['accuracy'] < other['accuracy'] or
+             row['average_bitwidth'] > other['average_bitwidth'] or
+             row['memory_density'] < other['memory_density']))
+    
     def find_pareto_front(self, df):
         pareto_front = []
         for index, row in df.iterrows():
@@ -86,6 +95,7 @@ class SearchStrategyBruteForce(SearchStrategyBase):
         return metrics
 
     def search(self, search_space) -> any :
+        starttime = time.time()
         sampled_indexes = {}
         for name, length in search_space.choice_lengths_flattened.items():
             sampled_indexes[name] = range(length)
@@ -118,13 +128,15 @@ class SearchStrategyBruteForce(SearchStrategyBase):
             metrics = metrics | scaled_metrics
             rec_metrics.append(metrics)
             self.visualizer.log_metrics(metrics=scaled_metrics)
-       
+        
+        endtime = time.time() - starttime
+        print(f"Searching finished, time taken = {endtime}")
         df = pd.DataFrame(rec_metrics)
         pareto_front = self.find_pareto_front(df)
         df.to_json(self.save_dir / "brute_force.json", orient="index", indent=4)
         pareto_front.to_json(self.save_dir / "pareto_brute_force.json", orient="index", indent=4)
         print(self.save_dir)
-        print(f"Pareto front of results from the brute force search {pareto_front}")
+        print(f"Pareto front of results from the brute force search\n {pareto_front}")
         # self.plot_pareto(pareto_front)
         return pareto_front
       
