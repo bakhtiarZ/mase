@@ -46,7 +46,7 @@ class SearchStrategyBruteForce(SearchStrategyBase):
                 metrics |= runner(self.data_module, model, sampled_config)
         return metrics
 
-    def search(self, search_space) -> Any:
+    def search(self, search_space) -> any :
         sampled_indexes = {}
         for name, length in search_space.choice_lengths_flattened.items():
             sampled_indexes[name] = range(length)
