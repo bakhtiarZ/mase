@@ -6,12 +6,51 @@ import numpy as np
 import itertools
 from functools import partial
 from .base import SearchStrategyBase
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
 
 from chop.passes.module.analysis import calculate_avg_bits_module_analysis_pass
 
 logger = logging.getLogger(__name__)
 
 class SearchStrategyBruteForce(SearchStrategyBase):
+
+    def plot_pareto(self, df_subset, colour = 'viridis'):
+      # Creating a 3D plot
+      fig = plt.figure(figsize=(10, 8))
+      ax = fig.add_subplot(111, projection='3d')
+      # Plotting the points
+      sc = ax.scatter(df_subset['accuracy'], 
+                      df_subset['memory_density'], 
+                      df_subset['average_bitwidth'], 
+                      c=df_subset['accuracy'], 
+                      cmap='viridis', 
+                      s=100)
+
+      ax.set_xlabel('Accuracy')
+      ax.set_ylabel('Memory Density')
+      ax.set_zlabel('Average Bitwidth')
+      plt.title('3D Plot of Accuracy, Memory Density, and Average Bitwidth')
+      plt.colorbar(sc, label='Accuracy')
+      plt.show()
+
+    def is_dominated(self, row, other):
+      return (row['loss'] >= other['loss'] and
+              row['accuracy'] <= other['accuracy'] and
+              row['average_bitwidth'] >= other['average_bitwidth'] and
+              row['memory_density'] >= other['memory_density'] and
+              (row['loss'] > other['loss'] or
+              row['accuracy'] < other['accuracy'] or
+              row['average_bitwidth'] > other['average_bitwidth'] or
+              row['memory_density'] > other['memory_density']))
+
+    def find_pareto_front(self, df):
+        pareto_front = []
+        for index, row in df.iterrows():
+            if not any(self.is_dominated(row, other) for _, other in df.iterrows()):
+                pareto_front.append(row)
+
+        return pd.DataFrame(pareto_front)
 
     def _post_init_setup(self) -> None:
         self.sum_scaled_metrics = self.config["setup"]["sum_scaled_metrics"]
@@ -79,11 +118,15 @@ class SearchStrategyBruteForce(SearchStrategyBase):
             metrics = metrics | scaled_metrics
             rec_metrics.append(metrics)
             self.visualizer.log_metrics(metrics=scaled_metrics)
-        
-        df = pd.DataFrame(rec_metrics).to_csv("search_metrics.csv",index=False)
-        key_metrics = df[['software_metrics', 'hardware_metrics']].to_numpy()
-        optimalvals = np.ones(key_metrics.shape[0], dtype=bool)
-        for i, objective in enumerate(key_metrics):
-            optimalvals[i] = np.all(np.any(key_metrics < objective, axis=1))
-        return df[optimalvals]
-            
+       
+        df = pd.DataFrame(rec_metrics)
+        pareto_front = self.find_pareto_front(df)
+        df.to_json(self.save_dir / "brute_force.json", orient="index", indent=4)
+        pareto_front.to_json(self.save_dir / "pareto_brute_force.json", orient="index", indent=4)
+        print(self.save_dir)
+        print(f"Pareto front of results from the brute force search {pareto_front}")
+        # self.plot_pareto(pareto_front)
+        return pareto_front
+      
+    
+
