@@ -59,13 +59,13 @@ class Hardshrinktb(Testbench):
         out = torch.where(cond, inputs, torch.tensor(0))
         unsignedout = torch.where(out < 0, torch.tensor(out % (2**self.width)), out)
         # pdb.set_trace()
-        print(inputs.to(torch.float))
+        # print(inputs.to(torch.float))
         m = torch.nn.Hardshrink(0.5*2**self.fracw)(inputs.to(torch.float))
         # print(m)
         m2 = torch.where(m < 0, torch.tensor(m % (2**self.width)), m)
-        # print(m2)
+        # print(m2.to(torch.int32).tolist())
         # print(unsignedout)
-        return m2.tolist()
+        return m2.to(torch.int32).tolist()
         
 
     def generate_inputs(self,w,fracw):
