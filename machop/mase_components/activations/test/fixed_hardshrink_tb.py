@@ -55,10 +55,17 @@ class Hardshrinktb(Testbench):
 
     def exp(self, inputs):
         # Run the model with the provided inputs and return the outputs
-        cond = torch.logical_or(inputs <= self.thresh*2**self.fracw, inputs >= -1 * self.thresh *2**self.fracw)
+        cond = torch.logical_not(torch.logical_and(inputs <= self.thresh*2**self.fracw, inputs >= -1 * self.thresh *2**self.fracw))
         out = torch.where(cond, inputs, torch.tensor(0))
         unsignedout = torch.where(out < 0, torch.tensor(out % (2**self.width)), out)
-        return unsignedout.tolist()
+        # pdb.set_trace()
+        print(inputs.to(torch.float))
+        m = torch.nn.Hardshrink(0.5*2**self.fracw)(inputs.to(torch.float))
+        # print(m)
+        m2 = torch.where(m < 0, torch.tensor(m % (2**self.width)), m)
+        # print(m2)
+        # print(unsignedout)
+        return m2.tolist()
         
 
     def generate_inputs(self,w,fracw):

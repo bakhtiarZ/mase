@@ -36,7 +36,7 @@ module fixed_hardshrink #(
     always_comb begin
       // negative value, put to zero
       // fx_lambda = LAMBDA << DATA_IN_0_PRECISION_1;
-      if ($signed(data_in_0[i]) < FX_LAMBDA) data_out_0[i] = data_in_0[i];
+      if ($signed(data_in_0[i]) < -1 *FX_LAMBDA) data_out_0[i] = data_in_0[i];
       else if($signed(data_in_0[i]) > FX_LAMBDA ) data_out_0[i] = data_in_0[i];
       else data_out_0[i] = '0;
     end
