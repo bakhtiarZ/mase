@@ -43,6 +43,10 @@ class Hardshrinktb(Testbench):
         )
         self.width = 8
         self.fracw = 4
+
+        self.outputwidth = 7
+        self.outputfracw = 4
+
         self.samples = 10
 
         self.data_in_0_driver = StreamDriver(
@@ -55,16 +59,13 @@ class Hardshrinktb(Testbench):
 
     def exp(self, inputs):
         # Run the model with the provided inputs and return the outputs
-        cond = torch.logical_not(torch.logical_and(inputs <= self.thresh*2**self.fracw, inputs >= -1 * self.thresh *2**self.fracw))
-        out = torch.where(cond, inputs, torch.tensor(0))
-        unsignedout = torch.where(out < 0, torch.tensor(out % (2**self.width)), out)
-        # pdb.set_trace()
-        # print(inputs.to(torch.float))
-        m = torch.nn.Hardshrink(0.5*2**self.fracw)(inputs.to(torch.float))
-        # print(m)
-        m2 = torch.where(m < 0, torch.tensor(m % (2**self.width)), m)
-        # print(m2.to(torch.int32).tolist())
-        # print(unsignedout)
+        # cond = torch.logical_not(torch.logical_and(inputs <= self.thresh*2**self.fracw, inputs >= -1 * self.thresh *2**self.fracw))
+        # out = torch.where(cond, inputs, torch.tensor(0))
+        # unsignedout = torch.where(out < 0, torch.tensor(out % (2**self.width)), out)
+        m = torch.nn.Hardshrink(self.thresh*2**self.fracw)(inputs.to(torch.float))
+        mout = m.clamp(min=-1*2**(self.outputwidth-1), max = 2**(self.outputwidth-1)-1)
+        m2 = torch.where(mout < 0, torch.tensor(mout % (2**self.outputwidth)), mout)
+        pdb.set_trace()
         return m2.to(torch.int32).tolist()
         
 
@@ -109,7 +110,7 @@ if __name__ == "__main__":
                 "DATA_IN_0_PRECISION_0": 8,
                 "DATA_IN_0_PRECISION_1": 4,
 
-                "DATA_OUT_0_PRECISION_0": 8,
+                "DATA_OUT_0_PRECISION_0": 7,
                 "DATA_OUT_0_PRECISION_1": 4,
                 "DATA_OUT_0_TENSOR_SIZE_DIM_0": 10,
                 "DATA_OUT_0_TENSOR_SIZE_DIM_1": 1,

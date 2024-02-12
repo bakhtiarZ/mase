@@ -31,17 +31,33 @@ module fixed_hardshrink #(
     input  logic data_out_0_ready
 );
   logic [DATA_IN_0_PRECISION_0-1:0] fx_lambda;
+  logic [DATA_IN_0_PRECISION_0-1:0] cast_data [DATA_IN_0_PARALLELISM_DIM_0*DATA_IN_0_PARALLELISM_DIM_1-1:0];
 
   for (genvar i = 0; i < DATA_IN_0_TENSOR_SIZE_DIM_0; i++) begin : ReLU
     always_comb begin
       // negative value, put to zero
       // fx_lambda = LAMBDA << DATA_IN_0_PRECISION_1;
-      if ($signed(data_in_0[i]) < -1 *FX_LAMBDA) data_out_0[i] = data_in_0[i];
-      else if($signed(data_in_0[i]) > FX_LAMBDA ) data_out_0[i] = data_in_0[i];
-      else data_out_0[i] = '0;
+      if ($signed(data_in_0[i]) < -1*FX_LAMBDA) cast_data[i] = data_in_0[i];
+      else if($signed(data_in_0[i]) > FX_LAMBDA ) cast_data[i] = data_in_0[i];
+      else cast_data[i] = '0;
+      $display("%d", cast_data[i]);
     end
   end
-  
+  //sw clamping:       [127, 34, 11, 0, 0, 32, 21, 0, 0, 12]
+  //hardware rounding: [103, 34, 11, 0, 0, 32, 21, 0, 0, 12]
+  //b4 rounding:       [231, 34, 11, 0, 0, 32, 21, 0, 0, 12]
+  fixed_rounding #(
+      .IN_SIZE(DATA_IN_0_PARALLELISM_DIM_0 * DATA_IN_0_PARALLELISM_DIM_1),
+      .IN_WIDTH(DATA_IN_0_PRECISION_0),
+      .IN_FRAC_WIDTH(DATA_IN_0_PRECISION_1),
+      .OUT_WIDTH(DATA_OUT_0_PRECISION_0),
+      .OUT_FRAC_WIDTH(DATA_OUT_0_PRECISION_1)
+  ) data_out_cast (
+      .data_in (cast_data),
+      .data_out(data_out_0)
+  );
+
+
   assign data_out_0_valid = data_in_0_valid;
   assign data_in_0_ready  = data_out_0_ready;
 
