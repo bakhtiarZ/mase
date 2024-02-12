@@ -21,7 +21,7 @@ logger = logging.getLogger("testbench")
 logger.setLevel(logging.INFO)
 
 
-class Hardshrinktb(Testbench):
+class Hardswishtb(Testbench):
     def __init__(self, dut) -> None:
         super().__init__(dut, dut.clk, dut.rst)
         self.assign_self_params(
@@ -55,10 +55,15 @@ class Hardshrinktb(Testbench):
 
     def exp(self, inputs):
         # Run the model with the provided inputs and return the outputs
-        cond = torch.logical_or(inputs <= self.thresh*2**self.fracw, inputs >= -1 * self.thresh *2**self.fracw)
-        out = torch.where(cond, inputs, torch.tensor(0))
-        unsignedout = torch.where(out < 0, torch.tensor(out % (2**self.width)), out)
-        return unsignedout.tolist()
+        tmp0 = 3 * 2**self.fracw
+        tmp1 = inputs + tmp0
+        tmp2 = tmp1*(2**-3) + tmp1*(2**-4)
+        # qtmps = self.dquantizer(tmp2)
+        tmp3 = tmp2 * inputs
+        unsignedout = torch.where(tmp3 < 0, torch.tensor(tmp3 % (2**self.width)), tmp3)
+        # return unsignedout.tolist()
+        pdb.set_trace()
+        return unsignedout
         
 
     def generate_inputs(self,w,fracw):
@@ -73,7 +78,7 @@ class Hardshrinktb(Testbench):
 
 @cocotb.test()
 async def test(dut):
-    tb = Hardshrinktb(dut)
+    tb = Hardswishtb(dut)
     await tb.reset()
     logger.info(f"Reset finished")
     tb.data_out_0_monitor.ready.value = 1
@@ -108,8 +113,6 @@ if __name__ == "__main__":
                 "DATA_OUT_0_TENSOR_SIZE_DIM_1": 1,
                 "DATA_OUT_0_PARALLELISM_DIM_0": 10,
                 "DATA_OUT_0_PARALLELISM_DIM_1": 1,
-
-                "LAMBDA":0.5
             }
         ]
     )

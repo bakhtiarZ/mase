@@ -36,7 +36,7 @@ class TestHardware:
     def check_files(self):
         """Check if all the required files exist for test cases"""
         for test_case in self.test_cases:
-            group, module = test_case.split("/")
+            group, a , module = test_case.split("/")
             # Check if the test bench exists
             tb_path = os.path.join(
                 self.root, "machop/mase_components", group, f"test/{module}_tb.py"

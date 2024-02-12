@@ -98,5 +98,5 @@ MASE_HW_DEPS = {
     #     "binary_arith",
     #     "common",
     # ],
-    # 'activations/int_relu6': ['common'],
+    'activations/fixed_hardshrink': ['common'],
 }
