@@ -21,7 +21,7 @@ logger = logging.getLogger("testbench")
 logger.setLevel(logging.INFO)
 
 
-class Hardshrinktb(Testbench):
+class fixed_silu_tb(Testbench):
     def __init__(self, dut) -> None:
         super().__init__(dut, dut.clk, dut.rst)
         self.assign_self_params(
@@ -62,7 +62,7 @@ class Hardshrinktb(Testbench):
         # cond = torch.logical_not(torch.logical_and(inputs <= self.thresh*2**self.fracw, inputs >= -1 * self.thresh *2**self.fracw))
         # out = torch.where(cond, inputs, torch.tensor(0))
         # unsignedout = torch.where(out < 0, torch.tensor(out % (2**self.width)), out)
-        m = torch.nn.Hardshrink(self.thresh*2**self.fracw)(inputs.to(torch.float))
+        m = torch.nn.SiLU()(inputs.to(torch.float))
         mout = m.clamp(min=-1*2**(self.outputwidth-1), max = 2**(self.outputwidth-1)-1)
         m2 = torch.where(mout < 0, torch.tensor(mout % (2**self.outputwidth)), mout)
         return m2.to(torch.int32).tolist()
@@ -80,7 +80,7 @@ class Hardshrinktb(Testbench):
 
 @cocotb.test()
 async def test(dut):
-    tb = Hardshrinktb(dut)
+    tb = fixed_silu_tb(dut)
     await tb.reset()
     logger.info(f"Reset finished")
     tb.data_out_0_monitor.ready.value = 1
@@ -109,14 +109,13 @@ if __name__ == "__main__":
                 "DATA_IN_0_PRECISION_0": 8,
                 "DATA_IN_0_PRECISION_1": 4,
 
-                "DATA_OUT_0_PRECISION_0": 7,
+                "DATA_OUT_0_PRECISION_0": 8,
                 "DATA_OUT_0_PRECISION_1": 4,
                 "DATA_OUT_0_TENSOR_SIZE_DIM_0": 10,
                 "DATA_OUT_0_TENSOR_SIZE_DIM_1": 1,
                 "DATA_OUT_0_PARALLELISM_DIM_0": 10,
                 "DATA_OUT_0_PARALLELISM_DIM_1": 1,
 
-                "LAMBDA":0.5
             }
         ]
     )

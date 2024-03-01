@@ -1,0 +1,64 @@
+make: Entering directory '/workspace/machop/mase_components/activations/test/build/fixed_silu/test_0'
+ccache g++  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=1 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable      -pg  -Os -c -o verilator.o /usr/local/lib/python3.11/dist-packages/cocotb/share/lib/verilator/verilator.cpp
+ccache g++ -Os  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=1 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable      -pg  -c -o verilated.o /usr/local/share/verilator/include/verilated.cpp
+ccache g++ -Os  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=1 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable      -pg  -c -o verilated_dpi.o /usr/local/share/verilator/include/verilated_dpi.cpp
+ccache g++ -Os  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=1 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable      -pg  -c -o verilated_vpi.o /usr/local/share/verilator/include/verilated_vpi.cpp
+ccache g++ -Os  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=1 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable      -pg  -c -o verilated_vcd_c.o /usr/local/share/verilator/include/verilated_vcd_c.cpp
+ccache g++ -Os  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=1 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable      -pg  -c -o verilated_threads.o /usr/local/share/verilator/include/verilated_threads.cpp
+/usr/bin/python3 /usr/local/share/verilator/bin/verilator_includer -DVL_INCLUDE_OPT=include Vtop.cpp Vtop___024root__DepSet_h84412442__0.cpp Vtop___024root__DepSet_heccd7ead__0.cpp Vtop_fixed_silu__DepSet_ha60c17c6__0.cpp Vtop__Dpi.cpp Vtop__Trace__0.cpp Vtop___024root__Slow.cpp Vtop___024root__DepSet_h84412442__0__Slow.cpp Vtop___024root__DepSet_heccd7ead__0__Slow.cpp Vtop_fixed_silu__Slow.cpp Vtop_fixed_silu__DepSet_ha60c17c6__0__Slow.cpp Vtop__Syms.cpp Vtop__Trace__0__Slow.cpp Vtop__TraceDecls__0__Slow.cpp > Vtop__ALL.cpp
+ccache g++ -Os  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=1 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable      -pg  -c -o Vtop__ALL.o Vtop__ALL.cpp
+echo "" > Vtop__ALL.verilator_deplist.tmp
+Archive ar -rcs Vtop__ALL.a Vtop__ALL.o
+g++     -pg verilator.o verilated.o verilated_dpi.o verilated_vpi.o verilated_vcd_c.o verilated_threads.o Vtop__ALL.a   -Wl,-rpath,/usr/local/lib/python3.11/dist-packages/cocotb/libs -L/usr/local/lib/python3.11/dist-packages/cocotb/libs -lcocotbvpi_verilator  -pthread -lpthread -latomic   -o fixed_silu
+rm Vtop__ALL.verilator_deplist.tmp
+make: Leaving directory '/workspace/machop/mase_components/activations/test/build/fixed_silu/test_0'
+     -.--ns INFO     gpi                                ..mbed/gpi_embed.cpp:76   in set_program_name_in_venv        Did not detect Python virtual environment. Using system-wide Python interpreter
+     -.--ns INFO     gpi                                ../gpi/GpiCommon.cpp:101  in gpi_print_registered_impl       VPI registered
+     0.00ns INFO     cocotb                             Running on Verilator version 5.020 2024-01-01
+     0.00ns INFO     cocotb                             Running tests with cocotb v1.8.0 from /usr/local/lib/python3.11/dist-packages/cocotb
+     0.00ns INFO     cocotb                             Seeding Python random module with 1709321056
+     0.00ns INFO     cocotb.regression                  Found test fixed_silu_tb.test
+     0.00ns INFO     cocotb.regression                  running test (1/1)
+    40.00ns INFO     testbench                          Reset finished
+    60.00ns ERROR    cocotb.Task 1.Driver._send_thread  Exception raised by this forked coroutine
+    60.00ns INFO     cocotb.regression                  test failed
+                                                        Traceback (most recent call last):
+                                                          File "/workspace/machop/mase_cocotb/driver.py", line 42, in _send_thread
+                                                            await self.send(transaction)
+                                                          File "/usr/local/lib/python3.11/dist-packages/cocotb/task.py", line 289, in __await__
+                                                            return (yield self)
+                                                                    ^^^^^^^^^^
+                                                          File "/workspace/machop/mase_cocotb/driver.py", line 64, in send
+                                                            await self._driver_send(transaction)
+                                                          File "/workspace/machop/mase_cocotb/interfaces/streaming.py", line 29, in _driver_send
+                                                            self.data.value = data
+                                                            ^^^^^^^^^^^^^^^
+                                                          File "/usr/local/lib/python3.11/dist-packages/cocotb/handle.py", line 201, in __setattr__
+                                                            return object.__setattr__(self, name, value)
+                                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                                          File "/usr/local/lib/python3.11/dist-packages/cocotb/handle.py", line 489, in value
+                                                            self._set_value(value, cocotb.scheduler._schedule_write)
+                                                          File "/usr/local/lib/python3.11/dist-packages/cocotb/handle.py", line 892, in _set_value
+                                                            raise TypeError(
+                                                        TypeError: Unsupported type for value assignment: <class 'list'> ([12, 9, 12, -9, -9, -27, -15, 15, 35, 4])
+    60.00ns INFO     cocotb.regression                  **************************************************************************************
+                                                        ** TEST                          STATUS  SIM TIME (ns)  REAL TIME (s)  RATIO (ns/s) **
+                                                        **************************************************************************************
+                                                        ** fixed_silu_tb.test             FAIL          60.00           0.00      23375.67  **
+                                                        **************************************************************************************
+                                                        ** TESTS=1 PASS=0 FAIL=1 SKIP=0                 60.00           4.35         13.81  **
+                                                        **************************************************************************************
+                                                        
+- :0: Verilog $finish
+/workspace/machop/mase_components/activations/test/build/fixed_silu
+##########################################
+#### TEST 0 : {'DATA_IN_0_TENSOR_SIZE_DIM_0': 10, 'DATA_IN_0_TENSOR_SIZE_DIM_1': 1, 'DATA_IN_0_PARALLELISM_DIM_0': 10, 'DATA_IN_0_PARALLELISM_DIM_1': 1, 'DATA_IN_0_PRECISION_0': 8, 'DATA_IN_0_PRECISION_1': 4, 'DATA_OUT_0_PRECISION_0': 8, 'DATA_OUT_0_PRECISION_1': 4, 'DATA_OUT_0_TENSOR_SIZE_DIM_0': 10, 'DATA_OUT_0_TENSOR_SIZE_DIM_1': 1, 'DATA_OUT_0_PARALLELISM_DIM_0': 10, 'DATA_OUT_0_PARALLELISM_DIM_1': 1}
+##########################################
+INFO: Running command perl /usr/local/bin/verilator -cc --exe -Mdir /workspace/machop/mase_components/activations/test/build/fixed_silu/test_0 -DCOCOTB_SIM=1 --top-module fixed_silu --vpi --public-flat-rw --prefix Vtop -o fixed_silu -LDFLAGS '-Wl,-rpath,/usr/local/lib/python3.11/dist-packages/cocotb/libs -L/usr/local/lib/python3.11/dist-packages/cocotb/libs -lcocotbvpi_verilator' -Wno-GENUNNAMED -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC -Wno-UNOPTFLAT -prof-c --stats --trace -O0 -build-jobs 8 -Wno-fatal -Wno-lint -Wno-style -I/workspace/machop/mase_components/common/rtl -I/workspace/machop/mase_components/cast/rtl -GDATA_IN_0_TENSOR_SIZE_DIM_0=10 -GDATA_IN_0_TENSOR_SIZE_DIM_1=1 -GDATA_IN_0_PARALLELISM_DIM_0=10 -GDATA_IN_0_PARALLELISM_DIM_1=1 -GDATA_IN_0_PRECISION_0=8 -GDATA_IN_0_PRECISION_1=4 -GDATA_OUT_0_PRECISION_0=8 -GDATA_OUT_0_PRECISION_1=4 -GDATA_OUT_0_TENSOR_SIZE_DIM_0=10 -GDATA_OUT_0_TENSOR_SIZE_DIM_1=1 -GDATA_OUT_0_PARALLELISM_DIM_0=10 -GDATA_OUT_0_PARALLELISM_DIM_1=1 /usr/local/lib/python3.11/dist-packages/cocotb/share/lib/verilator/verilator.cpp /workspace/machop/mase_components/activations/rtl/fixed_silu.sv in directory /workspace/machop/mase_components/activations/test/build/fixed_silu/test_0
+INFO: Running command make -C /workspace/machop/mase_components/activations/test/build/fixed_silu/test_0 -f Vtop.mk in directory /workspace/machop/mase_components/activations/test/build/fixed_silu/test_0
+INFO: Running command /workspace/machop/mase_components/activations/test/build/fixed_silu/test_0/fixed_silu in directory /workspace/machop/mase_components/activations/test/build/fixed_silu/test_0
+INFO: Results file: /workspace/machop/mase_components/activations/test/build/fixed_silu/test_0/results.xml
+TEST RESULTS
+    PASSED: 0
+    FAILED: 1
+    NUM TESTS: 1
