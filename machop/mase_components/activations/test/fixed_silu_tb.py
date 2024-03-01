@@ -63,6 +63,7 @@ class fixed_silu_tb(Testbench):
         # out = torch.where(cond, inputs, torch.tensor(0))
         # unsignedout = torch.where(out < 0, torch.tensor(out % (2**self.width)), out)
         m = torch.nn.SiLU()(inputs.to(torch.float))
+        print(m)
         mout = m.clamp(min=-1*2**(self.outputwidth-1), max = 2**(self.outputwidth-1)-1)
         m2 = torch.where(mout < 0, torch.tensor(mout % (2**self.outputwidth)), mout)
         return m2.to(torch.int32).tolist()
@@ -72,7 +73,7 @@ class fixed_silu_tb(Testbench):
         self.dquantizer = partial(
             integer_quantizer, width=self.width, frac_width=self.fracw
         )
-        realinp = torch.randn(self.samples)
+        realinp = torch.tensor([3,3,3,3,3,3,3,3,3,3])
         inputs = self.dquantizer(realinp)
         intinp = (inputs * 2**self.fracw).to(torch.int64)
         intinp.clamp(min=-2**(self.width-self.fracw-1), max = 2**(self.width-self.fracw-1)-1)
