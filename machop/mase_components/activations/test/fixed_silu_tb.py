@@ -25,25 +25,25 @@ logger.setLevel(logging.INFO)
 class fixed_silu_tb(Testbench):
     def __init__(self, dut) -> None:
         super().__init__(dut, dut.clk, dut.rst)
-        self.assign_self_params(
-            [
-                "DATA_IN_0_PRECISION_0",
-                "DATA_IN_0_PRECISION_1",
-                "DATA_IN_0_TENSOR_SIZE_DIM_0",
-                "DATA_IN_0_TENSOR_SIZE_DIM_1",
-                "DATA_IN_0_PARALLELISM_DIM_0",
-                "DATA_IN_0_PARALLELISM_DIM_1",
+        # self.assign_self_params(
+        #     [
+        #         "DATA_IN_0_PRECISION_0",
+        #         "DATA_IN_0_PRECISION_1",
+        #         "DATA_IN_0_TENSOR_SIZE_DIM_0",
+        #         "DATA_IN_0_TENSOR_SIZE_DIM_1",
+        #         "DATA_IN_0_PARALLELISM_DIM_0",
+        #         "DATA_IN_0_PARALLELISM_DIM_1",
 
-                "DATA_OUT_0_PRECISION_0",
-                "DATA_OUT_0_PRECISION_1",
-                "DATA_OUT_0_TENSOR_SIZE_DIM_0",
-                "DATA_OUT_0_TENSOR_SIZE_DIM_1",
-                "DATA_OUT_0_PARALLELISM_DIM_0",
-                "DATA_OUT_0_PARALLELISM_DIM_1",
-            ]
-        )
-        self.width = 8
-        self.fracw = 4
+        #         "DATA_OUT_0_PRECISION_0",
+        #         "DATA_OUT_0_PRECISION_1",
+        #         "DATA_OUT_0_TENSOR_SIZE_DIM_0",
+        #         "DATA_OUT_0_TENSOR_SIZE_DIM_1",
+        #         "DATA_OUT_0_PARALLELISM_DIM_0",
+        #         "DATA_OUT_0_PARALLELISM_DIM_1",
+        #     ]
+        # )
+        self.data_width = 8
+        self.frac_width = 4
 
         self.outputwidth = 8
         self.outputfracw = 4
@@ -56,17 +56,16 @@ class fixed_silu_tb(Testbench):
         self.data_out_0_monitor = StreamMonitor(
             dut.clk, dut.data_out_0, dut.data_out_0_valid, dut.data_out_0_ready
         )
-        self.thresh = 0.5
 
     def exp(self, inputs):
         # Run the model with the provided inputs and return the outputs
-        # cond = torch.logical_not(torch.logical_and(inputs <= self.thresh*2**self.fracw, inputs >= -1 * self.thresh *2**self.fracw))
+        # cond = torch.logical_not(torch.logical_and(inputs <= self.thresh*2**self.frac_width, inputs >= -1 * self.thresh *2**self.frac_width))
         # out = torch.where(cond, inputs, torch.tensor(0))
-        # unsignedout = torch.where(out < 0, torch.tensor(out % (2**self.width)), out)
+        # unsignedout = torch.where(out < 0, torch.tensor(out % (2**self.data_width)), out)
         m = torch.nn.SiLU()(inputs.to(torch.float))
         m = self.dquantizer(m)
         # mout = m.clamp(min=-1*2**(self.outputwidth-1), max = 2**(self.outputwidth-1)-1)
-        m2 = (m * 2 ** self.fracw).to(torch.int64)
+        m2 = (m * 2 ** self.frac_width).to(torch.int64)
         m2 = torch.where(m2 < 0, torch.tensor(m2 % (2**self.outputwidth)), m2)
         logger.info(f"out of silu and quantizer: {m}, int version {m2}")
         return m2.tolist()
@@ -74,12 +73,12 @@ class fixed_silu_tb(Testbench):
 
     def generate_inputs(self,w,fracw):
         self.dquantizer = partial(
-            integer_quantizer, width=self.width, frac_width=self.fracw
+            integer_quantizer, width=self.data_width, frac_width=self.frac_width
         )
         # realinp = torch.tensor([3,3,3,3,3,3,3,3,3,3])
         realinp = torch.randn(self.samples)
         inputs = self.dquantizer(realinp)
-        intinp = (inputs * 2**self.fracw).to(torch.int64)
+        intinp = (inputs * 2**self.frac_width).to(torch.int64)
         return intinp, inputs
 
     def doubletofx(self, num, data_width, f_width, type = "bin"):
@@ -95,8 +94,8 @@ async def test(dut):
     logger.info(f"Reset finished")
     tb.data_out_0_monitor.ready.value = 1
 
-    inputs, real_inp = tb.generate_inputs(tb.width,tb.fracw)
-    bin_inputs = [tb.doubletofx(num=x, data_width=tb.width, f_width=tb.fracw) for x in real_inp]
+    inputs, real_inp = tb.generate_inputs(tb.data_width,tb.frac_width)
+    bin_inputs = [tb.doubletofx(num=x, data_width=tb.data_width, f_width=tb.frac_width) for x in real_inp]
     logger.info(f"int inputs: {inputs}, bin inputs: {bin_inputs}, real_inputs: {real_inp}")
     exp_out = tb.exp(real_inp)
 
