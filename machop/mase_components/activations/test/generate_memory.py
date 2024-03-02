@@ -81,15 +81,10 @@ def lookup_to_file(data_width: int, f_width: int, function: str, file_path = Non
     # Write values to the file separated by spaces
         file.write('\n'.join(str(value) for value in dicto.values()))
 
-<<<<<<< HEAD
 function_name = input("Enter the function name: ")
 assert function_name in FUNCTION_TABLE, f"Function {function_name} not found in FUNCTION_TABLE"
 lookup_to_file(8, 4, function_name, f'/workspace/machop/mase_components/activations/rtl/{function_name}_map.memb')
 # print(generate_lookup(8,4,"silu", "bin"))
-=======
-lookup_to_file(8, 4, 'silu', '/workspace/machop/mase_components/activations/rtl/silu_map.mem')
-# # print(generate_lookup(8,4,"silu", "bin"))
->>>>>>> lab4submission
 # quanter = make_quantizer(8,4)
 # a = doubletofx(8,0,46,"bin")
 # q = doubletofx(8,0,48,"bin")
