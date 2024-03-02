@@ -15,6 +15,10 @@ def make_quantizer(data_width:int, f_width:int):
 
 FUNCTION_TABLE = {
     'silu' : nn.SiLU(),
+    'elu': nn.ELU(),
+    'sigmoid': nn.Sigmoid(),
+    'logsigmoid': nn.LogSigmoid(),
+    'softshrink': nn.Softshrink(),
 }
 
 def fxtodouble(data_width: int, f_width: int, fx_num: str):
@@ -77,17 +81,19 @@ def lookup_to_file(data_width: int, f_width: int, function: str, file_path = Non
     # Write values to the file separated by spaces
         file.write('\n'.join(str(value) for value in dicto.values()))
 
-# lookup_to_file(8, 4, 'silu', '/workspace/machop/mase_components/activations/rtl/silu_map.memb')
+function_name = input("Enter the function name: ")
+assert function_name in FUNCTION_TABLE, f"Function {function_name} not found in FUNCTION_TABLE"
+lookup_to_file(8, 4, function_name, f'/workspace/machop/mase_components/activations/rtl/{function_name}_map.memb')
 # print(generate_lookup(8,4,"silu", "bin"))
-quanter = make_quantizer(8,4)
-a = doubletofx(8,0,46,"bin")
-q = doubletofx(8,0,48,"bin")
-print(a, q)
-b = fxtodouble(8,4,a)
-c = nn.SiLU()(torch.tensor(3.0))
-d = quanter(c)
-e = doubletofx(8,4,d,"bin")
-f = d * 2**(4)
-print(a,b,c,d,e,f)
+# quanter = make_quantizer(8,4)
+# a = doubletofx(8,0,46,"bin")
+# q = doubletofx(8,0,48,"bin")
+# print(a, q)
+# b = fxtodouble(8,4,a)
+# c = nn.SiLU()(torch.tensor(3.0))
+# d = quanter(c)
+# e = doubletofx(8,4,d,"bin")
+# f = d * 2**(4)
+# print(a,b,c,d,e,f)
 
 
