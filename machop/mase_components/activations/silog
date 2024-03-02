@@ -19,7 +19,7 @@ make: Leaving directory '/workspace/machop/mase_components/activations/test/buil
      -.--ns INFO     gpi                                ../gpi/GpiCommon.cpp:101  in gpi_print_registered_impl       VPI registered
      0.00ns INFO     cocotb                             Running on Verilator version 5.020 2024-01-01
      0.00ns INFO     cocotb                             Running tests with cocotb v1.8.0 from /usr/local/lib/python3.11/dist-packages/cocotb
-     0.00ns INFO     cocotb                             Seeding Python random module with 1709401206
+     0.00ns INFO     cocotb                             Seeding Python random module with 1709401893
 /usr/local/lib/python3.11/dist-packages/_pytest/assertion/rewrite.py:178: DeprecationWarning: 'pipes' is deprecated and slated for removal in Python 3.13
   exec(co, module.__dict__)
 /usr/local/lib/python3.11/dist-packages/timm/models/helpers.py:7: DeprecationWarning: Importing from timm.models.helpers is deprecated, please import via timm.models
@@ -33,23 +33,23 @@ make: Leaving directory '/workspace/machop/mase_components/activations/test/buil
      0.00ns INFO     cocotb.regression                  Found test fixed_silu_tb.test
      0.00ns INFO     cocotb.regression                  running test (1/1)
     40.00ns INFO     testbench                          Reset finished
-    40.00ns INFO     testbench                          int inputs: tensor([-15,  34,  -5,   7,   5, -15, -14,  26,  12,  -8]), bin inputs: ['11110001', '00100010', '11111011', '00000111', '00000101', '11110001', '11110010', '00011010', '00001100', '11111000'], real_inputs: tensor([-0.9375,  2.1250, -0.3125,  0.4375,  0.3125, -0.9375, -0.8750,  1.6250,
-                                                                 0.7500, -0.5000])
-/workspace/machop/mase_components/activations/test/fixed_silu_tb.py:70: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+    40.00ns INFO     testbench                          int inputs: tensor([ 30,  23,   9,   5,  15,   3,  12,   8, -30,   3]), bin inputs: ['00011110', '00010111', '00001001', '00000101', '00001111', '00000011', '00001100', '00001000', '11100010', '00000011'], real_inputs: tensor([ 1.8750,  1.4375,  0.5625,  0.3125,  0.9375,  0.1875,  0.7500,  0.5000,
+                                                                -1.8750,  0.1875])
+/workspace/machop/mase_components/activations/test/fixed_silu_tb.py:69: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
   m2 = torch.where(m2 < 0, torch.tensor(m2 % (2**self.outputwidth)), m2)
-    40.00ns INFO     testbench                          out of silu and quantizer: tensor([-0.2500,  1.8750, -0.1250,  0.2500,  0.1875, -0.2500, -0.2500,  1.3750,
-                                                                 0.5000, -0.1875]), int version tensor([252,  30, 254,   4,   3, 252, 252,  22,   8, 253])
-    80.00ns INFO     cocotb.monitor.StreamMonitor       Observed output beat [252, 30, 254, 4, 3, 252, 252, 22, 8, 253]
+    40.00ns INFO     testbench                          out of silu and quantizer: tensor([ 1.6250,  1.1875,  0.3750,  0.1875,  0.6875,  0.1250,  0.5000,  0.3125,
+                                                                -0.2500,  0.1250]), int version tensor([ 26,  19,   6,   3,  11,   2,   8,   5, 252,   2])
+    80.00ns INFO     cocotb.monitor.StreamMonitor       Observed output beat [26, 19, 6, 3, 11, 2, 8, 5, 252, 2]
  10040.00ns INFO     cocotb.regression                  test passed
  10040.00ns INFO     cocotb.regression                  **************************************************************************************
                                                         ** TEST                          STATUS  SIM TIME (ns)  REAL TIME (s)  RATIO (ns/s) **
                                                         **************************************************************************************
-                                                        ** fixed_silu_tb.test             PASS       10040.00           0.07     144893.44  **
+                                                        ** fixed_silu_tb.test             PASS       10040.00           0.08     122261.27  **
                                                         **************************************************************************************
-                                                        ** TESTS=1 PASS=1 FAIL=0 SKIP=0              10040.00           9.28       1082.36  **
+                                                        ** TESTS=1 PASS=1 FAIL=0 SKIP=0              10040.00           9.28       1082.21  **
                                                         **************************************************************************************
                                                         
-/usr/lib/python3.11/tempfile.py:1034: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/tmp/tmpjvfxx4y5'>
+/usr/lib/python3.11/tempfile.py:1034: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/tmp/tmpxsqdcmbt'>
   _warnings.warn(warn_message, ResourceWarning)
 - :0: Verilog $finish
 /workspace/machop/mase_components/activations/test/build/fixed_silu

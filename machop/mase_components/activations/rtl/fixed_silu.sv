@@ -13,11 +13,8 @@ module fixed_silu #(
     parameter DATA_OUT_0_TENSOR_SIZE_DIM_0 = 10,
     parameter DATA_OUT_0_TENSOR_SIZE_DIM_1 = 1,
     parameter DATA_OUT_0_PARALLELISM_DIM_0 = 1,
-    parameter DATA_OUT_0_PARALLELISM_DIM_1 = 1,
-    parameter LAMBDA = 0.5, //the threshold
-    parameter FX_LAMBDA = $rtoi(LAMBDA * 2**(DATA_IN_0_PRECISION_1)), //the threshold
+    parameter DATA_OUT_0_PARALLELISM_DIM_1 = 1
 
-    parameter INPLACE = 0
 ) (
     /* verilator lint_off UNUSEDSIGNAL */
     input rst,
@@ -30,24 +27,12 @@ module fixed_silu #(
     output logic data_out_0_valid,
     input  logic data_out_0_ready
 );
-  logic [DATA_IN_0_PRECISION_0-1:0] silu_data [256];
-
-  // for (genvar i = 0; i < DATA_IN_0_PARALLELISM_DIM_0*DATA_IN_0_PARALLELISM_DIM_1; i++) begin : ReLU
-  //   always_comb begin
-  //     if ($signed(data_in_0[i]) < -1*FX_LAMBDA) cast_data[i] = data_in_0[i];
-  //     else if($signed(data_in_0[i]) > FX_LAMBDA ) cast_data[i] = data_in_0[i];
-  //     else cast_data[i] = '0;
-  //     $display("%d", cast_data[i]);
-  //   end
-  // end
+  localparam MEM_SIZE = $rtoi(2**(DATA_IN_0_PRECISION_0)); //the threshold
+  logic [DATA_OUT_0_PRECISION_0-1:0] silu_data [MEM_SIZE];
   logic [DATA_IN_0_PRECISION_0-1:0] realaddr[DATA_IN_0_PARALLELISM_DIM_0*DATA_IN_0_PARALLELISM_DIM_1-1:0];
   
   initial begin
     $readmemb("/workspace/machop/mase_components/activations/rtl/silu_map.mem", silu_data);
-    // $display("input %b %d", data_in_0, data_in_0);
-    // $display("realaddr %b %d", realaddr[0], realaddr[0]);
-    // $display("SILU at 3 %b", silu_lut[realaddr]);
-    // $writememb("/workspace/machop/mase_components/activations/rtl/memory_binary.txt", silu_lut);
   end
   for (genvar i = 0; i < DATA_IN_0_PARALLELISM_DIM_0*DATA_IN_0_PARALLELISM_DIM_1; i++) begin : SiLU
     always_comb begin
