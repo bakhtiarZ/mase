@@ -3,6 +3,7 @@
 # This script tests the fixed point linear
 import os, logging
 import pdb
+from bitstring import BitArray
 import cocotb
 from functools import partial
 from cocotb.triggers import *
@@ -44,7 +45,7 @@ class fixed_silu_tb(Testbench):
         self.width = 8
         self.fracw = 4
 
-        self.outputwidth = 7
+        self.outputwidth = 8
         self.outputfracw = 4
 
         self.samples = 10
@@ -63,21 +64,29 @@ class fixed_silu_tb(Testbench):
         # out = torch.where(cond, inputs, torch.tensor(0))
         # unsignedout = torch.where(out < 0, torch.tensor(out % (2**self.width)), out)
         m = torch.nn.SiLU()(inputs.to(torch.float))
-        print(m)
-        mout = m.clamp(min=-1*2**(self.outputwidth-1), max = 2**(self.outputwidth-1)-1)
-        m2 = torch.where(mout < 0, torch.tensor(mout % (2**self.outputwidth)), mout)
-        return m2.to(torch.int32).tolist()
+        m = self.dquantizer(m)
+        # mout = m.clamp(min=-1*2**(self.outputwidth-1), max = 2**(self.outputwidth-1)-1)
+        m2 = (m * 2 ** self.fracw).to(torch.int64)
+        m2 = torch.where(m2 < 0, torch.tensor(m2 % (2**self.outputwidth)), m2)
+        logger.info(f"out of silu and quantizer: {m}, int version {m2}")
+        return m2.tolist()
         
 
     def generate_inputs(self,w,fracw):
         self.dquantizer = partial(
             integer_quantizer, width=self.width, frac_width=self.fracw
         )
-        realinp = torch.tensor([3,3,3,3,3,3,3,3,3,3])
+        # realinp = torch.tensor([3,3,3,3,3,3,3,3,3,3])
+        realinp = torch.randn(self.samples)
         inputs = self.dquantizer(realinp)
         intinp = (inputs * 2**self.fracw).to(torch.int64)
-        intinp.clamp(min=-2**(self.width-self.fracw-1), max = 2**(self.width-self.fracw-1)-1)
-        return intinp
+        return intinp, inputs
+
+    def doubletofx(self, num, data_width, f_width, type = "bin"):
+        assert type == "bin" or type == "hex", "type can only be: 'hex' or 'bin'"
+        intnum = int(num * 2**(f_width))
+        intbits = BitArray(int=intnum, length=data_width)
+        return str(intbits.bin) if type == 'bin' else str(intbits)
 
 @cocotb.test()
 async def test(dut):
@@ -86,9 +95,10 @@ async def test(dut):
     logger.info(f"Reset finished")
     tb.data_out_0_monitor.ready.value = 1
 
-    inputs = tb.generate_inputs(tb.width,tb.fracw)
-    # logger.info(f"inputs: {inputs}, q_inputs: {q_inputs}")
-    exp_out = tb.exp(inputs)
+    inputs, real_inp = tb.generate_inputs(tb.width,tb.fracw)
+    bin_inputs = [tb.doubletofx(num=x, data_width=tb.width, f_width=tb.fracw) for x in real_inp]
+    logger.info(f"int inputs: {inputs}, bin inputs: {bin_inputs}, real_inputs: {real_inp}")
+    exp_out = tb.exp(real_inp)
 
     tb.data_in_0_driver.append(inputs.tolist())
     # To do: replace with tb.load_monitors(exp_out)
