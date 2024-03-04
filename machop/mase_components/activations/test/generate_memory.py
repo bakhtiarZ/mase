@@ -110,20 +110,10 @@ def lookup_to_file(data_width: int, f_width: int, function: str, file_path = Non
     with open(file_path, "w") as file:
     # Write values to the file separated by spaces
         file.write('\n'.join(str(value) for value in dicto.values()))
+        file.write('\n')
 
 def generate_mem(function_name, data_width, f_width):
     assert function_name in FUNCTION_TABLE, f"Function {function_name} not found in FUNCTION_TABLE"
     lookup_to_file(data_width, f_width, function_name, f'/workspace/machop/mase_components/activations/rtl/{function_name}_map.mem')
-# print(generate_lookup(8,4,"silu", "bin"))
-# quanter = make_quantizer(8,4)
-# a = doubletofx(8,0,46,"bin")
-# q = doubletofx(8,0,48,"bin")
-# print(a, q)
-# b = fxtodouble(8,4,a)
-# c = nn.SiLU()(torch.tensor(3.0))
-# d = quanter(c)
-# e = doubletofx(8,4,d,"bin")
-# f = d * 2**(4)
-# print(a,b,c,d,e,f)
 
 

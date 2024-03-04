@@ -27,17 +27,33 @@ module fixed_elu #(
     output logic data_out_0_valid,
     input  logic data_out_0_ready
 );
-  localparam MEM_SIZE = $rtoi(2**(DATA_IN_0_PRECISION_0)); //the threshold
+  localparam MEM_SIZE = (2**(DATA_IN_0_PRECISION_0)); //the threshold
   logic [DATA_OUT_0_PRECISION_0-1:0] elu_data [MEM_SIZE];
+
   initial begin
     $readmemb("/workspace/machop/mase_components/activations/rtl/elu_map.mem", elu_data);
-  end
+  end              //mase/machop/mase_components/activations/rtl/elu_map.mem
+  
   for (genvar i = 0; i < DATA_IN_0_PARALLELISM_DIM_0*DATA_IN_0_PARALLELISM_DIM_1; i++) begin : elu
     always_comb begin
       data_out_0[i] = elu_data[data_in_0[i]];
     end
   end
-  assign data_out_0 = data_in_0;
+
+  // always_comb begin
+  //   $display("MEM SIZE %d", MEM_SIZE);
+  //   $display("--------------------------------DATA IN VALID: %b", data_in_0_valid);
+  //   if(data_in_0_valid) begin
+  //     data_out_0[0] = elu_data[(data_in_0[0])];
+  //     $display("--------------------------------DATA IN 0: %b", data_in_0[0]);
+  //     $display("--------------------------------DATA OUT 0: %b", data_out_0[0]);
+  //     $display("--------------------------------ELU DATA of INP: %b", elu_data['b11111]);
+
+  //     $display("\n\n");
+  //     $display("--------------------------------elu data\n%p " , elu_data);
+  //   end
+  // end
+
   assign data_out_0_valid = data_in_0_valid;
   assign data_in_0_ready  = data_out_0_ready;
 

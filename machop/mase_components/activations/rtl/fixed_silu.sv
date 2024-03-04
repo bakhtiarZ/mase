@@ -37,7 +37,6 @@ module fixed_silu #(
       data_out_0[i] = silu_data[data_in_0[i]];
     end
   end
-  assign data_out_0 = data_in_0;
   assign data_out_0_valid = data_in_0_valid;
   assign data_in_0_ready  = data_out_0_ready;
 
