@@ -30,7 +30,7 @@ module fixed_silu #(
   localparam MEM_SIZE = $rtoi(2**(DATA_IN_0_PRECISION_0)); //the threshold
   logic [DATA_OUT_0_PRECISION_0-1:0] silu_data [MEM_SIZE];
   initial begin
-    $readmemb("/workspace/machop/mase_components/activations/rtl/aligned_silu_map.mem", silu_data);
+    $readmemb("/workspace/machop/mase_components/activations/rtl/silu_map.mem", silu_data);
   end
   for (genvar i = 0; i < DATA_IN_0_PARALLELISM_DIM_0*DATA_IN_0_PARALLELISM_DIM_1; i++) begin : SiLU
     always_comb begin

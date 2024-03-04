@@ -23,7 +23,7 @@ logger.setLevel(logging.INFO)
 
 
 class fixed_silu_tb(Testbench):
-    def __init__(self, dut) -> None:
+    def __init__(self, dut, num_words) -> None:
         super().__init__(dut, dut.clk, dut.rst)
         # self.assign_self_params(
         #     [
@@ -48,7 +48,7 @@ class fixed_silu_tb(Testbench):
         self.outputwidth = 8
         self.outputfracw = 4
 
-        self.samples = 10
+        self.num_words_per_input = num_words
 
         self.data_in_0_driver = StreamDriver(
             dut.clk, dut.data_in_0, dut.data_in_0_valid, dut.data_in_0_ready
@@ -66,8 +66,8 @@ class fixed_silu_tb(Testbench):
         m = self.dquantizer(m)
         # mout = m.clamp(min=-1*2**(self.outputwidth-1), max = 2**(self.outputwidth-1)-1)
         m2 = (m * 2 ** self.frac_width).to(torch.int64)
-        m2 = torch.where(m2 < 0, torch.tensor(m2 % (2**self.outputwidth)), m2)
-        logger.info(f"out of silu and quantizer: {m}, int version {m2}")
+        m2 = torch.where(m2 < 0, (m2.clone().detach() % (2**self.outputwidth)), m2)
+        # logger.info(f"out of silu and quantizer: {m}, int version {m2}")
         return m2.tolist()
         
 
@@ -75,8 +75,8 @@ class fixed_silu_tb(Testbench):
         self.dquantizer = partial(
             integer_quantizer, width=self.data_width, frac_width=self.frac_width
         )
-        # realinp = torch.tensor([3,3,3,3,3,3,3,3,3,3])
-        realinp = torch.randn(self.samples)
+        # realinp = torch.tensor([1,1,1,1,1,1,1,1,1,1])
+        realinp = torch.randn(self.num_words_per_input)
         inputs = self.dquantizer(realinp)
         intinp = (inputs * 2**self.frac_width).to(torch.int64)
         return intinp, inputs
@@ -89,29 +89,37 @@ class fixed_silu_tb(Testbench):
 
 @cocotb.test()
 async def test(dut):
-    tb = fixed_silu_tb(dut)
+    NUM_TEST_SAMPLES = 498
+
+    nw_per_input = dut_params["DATA_IN_0_PARALLELISM_DIM_0"] * dut_params["DATA_IN_0_PARALLELISM_DIM_1"]
+    tb = fixed_silu_tb(dut, num_words=nw_per_input)
     await tb.reset()
     logger.info(f"Reset finished")
-    tb.data_out_0_monitor.ready.value = 1
-
-    inputs, real_inp = tb.generate_inputs(tb.data_width,tb.frac_width)
-    bin_inputs = [tb.doubletofx(num=x, data_width=tb.data_width, f_width=tb.frac_width) for x in real_inp]
-    logger.info(f"int inputs: {inputs}, bin inputs: {bin_inputs}, real_inputs: {real_inp}")
-    exp_out = tb.exp(real_inp)
-
-    tb.data_in_0_driver.append(inputs.tolist())
+    for i in range(NUM_TEST_SAMPLES):
+        inputs, real_inp = tb.generate_inputs(tb.data_width,tb.frac_width)
+        bin_inputs = [tb.doubletofx(num=x, data_width=tb.data_width, f_width=tb.frac_width) for x in real_inp]
+        # logger.info(f"int inputs: {inputs}, bin inputs: {bin_inputs}, real_inputs: {real_inp}")
+        exp_out = tb.exp(real_inp)
+        tb.data_in_0_driver.append(inputs.tolist())
+        tb.data_out_0_monitor.expect(exp_out)
+    tb.data_out_0_monitor._trigger()
+    
     # To do: replace with tb.load_monitors(exp_out)
-    tb.data_out_0_monitor.expect(exp_out)
+    logger.info(f"DRIVER QUEUE SIZE {tb.data_in_0_driver.send_queue.qsize()}")
+        
+    
     # To do: replace with tb.run()
     await Timer(10, units="us")
     # To do: replace with tb.monitors_done() --> for monitor, call monitor_done()
-    assert tb.data_out_0_monitor.exp_queue.empty()
+    count=0
+    if(not tb.data_out_0_monitor.exp_queue.empty()):
+        while(not tb.data_out_0_monitor.exp_queue.empty()):
+            count+=1
+            logger.error(f"Expected queue not empty: {tb.data_out_0_monitor.exp_queue.get()}")
+        logger.error(f"Expected queue not empty: {count}")
+        assert 0==1
 
-
-if __name__ == "__main__":
-    mase_runner(
-        module_param_list=[
-            {
+dut_params = {
                 "DATA_IN_0_TENSOR_SIZE_DIM_0": 10,
                 "DATA_IN_0_TENSOR_SIZE_DIM_1": 1,
                 "DATA_IN_0_PARALLELISM_DIM_0": 10,
@@ -127,5 +135,9 @@ if __name__ == "__main__":
                 "DATA_OUT_0_PARALLELISM_DIM_1": 1,
 
             }
+if __name__ == "__main__":
+    mase_runner(
+        module_param_list=[
+            dut_params
         ]
     )
