@@ -101,5 +101,7 @@ MASE_HW_DEPS = {
     'activations/fixed_hardshrink': ['common', 'cast'],
     'activations/fixed_silu': ['common', 'cast'],
     'activations/fixed_elu': ['common', 'cast'],
+    'activations/fixed_sigmoid': ['common', 'cast'],
+    'activations/fixed_logsigmoid': ['common', 'cast'],
 
 }
