@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-# This script tests the fixed point linear
 import os, logging
+import generate_memory
 import pdb
 from bitstring import BitArray
 import cocotb
@@ -23,30 +23,14 @@ logger.setLevel(logging.INFO)
 
 
 class fixed_silu_tb(Testbench):
-    def __init__(self, dut, num_words) -> None:
+    def __init__(self, dut, dut_params, num_words) -> None:
         super().__init__(dut, dut.clk, dut.rst)
-        # self.assign_self_params(
-        #     [
-        #         "DATA_IN_0_PRECISION_0",
-        #         "DATA_IN_0_PRECISION_1",
-        #         "DATA_IN_0_TENSOR_SIZE_DIM_0",
-        #         "DATA_IN_0_TENSOR_SIZE_DIM_1",
-        #         "DATA_IN_0_PARALLELISM_DIM_0",
-        #         "DATA_IN_0_PARALLELISM_DIM_1",
 
-        #         "DATA_OUT_0_PRECISION_0",
-        #         "DATA_OUT_0_PRECISION_1",
-        #         "DATA_OUT_0_TENSOR_SIZE_DIM_0",
-        #         "DATA_OUT_0_TENSOR_SIZE_DIM_1",
-        #         "DATA_OUT_0_PARALLELISM_DIM_0",
-        #         "DATA_OUT_0_PARALLELISM_DIM_1",
-        #     ]
-        # )
-        self.data_width = 8
-        self.frac_width = 4
+        self.data_width = dut_params["DATA_IN_0_PRECISION_0"] 
+        self.frac_width = dut_params["DATA_IN_0_PRECISION_1"]
 
-        self.outputwidth = 8
-        self.outputfracw = 4
+        self.outputwidth = dut_params["DATA_OUT_0_PRECISION_0"] 
+        self.outputfracw = dut_params["DATA_OUT_0_PRECISION_1"]
 
         self.num_words_per_input = num_words
 
@@ -68,14 +52,13 @@ class fixed_silu_tb(Testbench):
         m2 = (m * 2 ** self.frac_width).to(torch.int64)
         m2 = torch.where(m2 < 0, (m2.clone().detach() % (2**self.outputwidth)), m2)
         # logger.info(f"out of silu and quantizer: {m}, int version {m2}")
-        return m2.tolist()
+        return m2
         
 
-    def generate_inputs(self,w,fracw):
+    def generate_inputs(self):
         self.dquantizer = partial(
             integer_quantizer, width=self.data_width, frac_width=self.frac_width
         )
-        # realinp = torch.tensor([1,1,1,1,1,1,1,1,1,1])
         realinp = torch.randn(self.num_words_per_input)
         inputs = self.dquantizer(realinp)
         intinp = (inputs * 2**self.frac_width).to(torch.int64)
@@ -87,54 +70,51 @@ class fixed_silu_tb(Testbench):
         intbits = BitArray(int=intnum, length=data_width)
         return str(intbits.bin) if type == 'bin' else str(intbits)
 
+    async def run_test(self):
+        await self.reset()
+        logger.info(f"Reset finished")
+        self.data_out_0_monitor.ready.value = 1
+        for i in range(1000):
+            inputs, real_inp = self.generate_inputs()
+            inputs = inputs.tolist()
+            exp_out = self.exp(real_inp)
+            exp_out = exp_out.tolist()
+            logger.info("Inputs and expected generated")
+            
+            self.data_in_0_driver.load_driver([inputs])
+            # self.data_in_0_driver.append(inputs)
+            self.data_out_0_monitor.load_monitor([exp_out])
+
+        await Timer(1000, units="us")
+        assert self.data_out_0_monitor.exp_queue.empty()
+
 @cocotb.test()
 async def test(dut):
-    NUM_TEST_SAMPLES = 498
-
+    data_width = dut_params["DATA_IN_0_PRECISION_0"] 
+    frac_width = dut_params["DATA_IN_0_PRECISION_1"]
     nw_per_input = dut_params["DATA_IN_0_PARALLELISM_DIM_0"] * dut_params["DATA_IN_0_PARALLELISM_DIM_1"]
-    tb = fixed_silu_tb(dut, num_words=nw_per_input)
-    await tb.reset()
-    logger.info(f"Reset finished")
-    for i in range(NUM_TEST_SAMPLES):
-        inputs, real_inp = tb.generate_inputs(tb.data_width,tb.frac_width)
-        bin_inputs = [tb.doubletofx(num=x, data_width=tb.data_width, f_width=tb.frac_width) for x in real_inp]
-        # logger.info(f"int inputs: {inputs}, bin inputs: {bin_inputs}, real_inputs: {real_inp}")
-        exp_out = tb.exp(real_inp)
-        tb.data_in_0_driver.append(inputs.tolist())
-        tb.data_out_0_monitor.expect(exp_out)
-    tb.data_out_0_monitor._trigger()
+    generate_memory.generate_mem("silu", data_width, frac_width)
     
-    # To do: replace with tb.load_monitors(exp_out)
-    logger.info(f"DRIVER QUEUE SIZE {tb.data_in_0_driver.send_queue.qsize()}")
-        
-    
-    # To do: replace with tb.run()
-    await Timer(10, units="us")
-    # To do: replace with tb.monitors_done() --> for monitor, call monitor_done()
-    count=0
-    if(not tb.data_out_0_monitor.exp_queue.empty()):
-        while(not tb.data_out_0_monitor.exp_queue.empty()):
-            count+=1
-            logger.error(f"Expected queue not empty: {tb.data_out_0_monitor.exp_queue.get()}")
-        logger.error(f"Expected queue not empty: {count}")
-        assert 0==1
-
+    tb = fixed_silu_tb(dut, dut_params, num_words=nw_per_input)
+    await tb.run_test()
+  
 dut_params = {
                 "DATA_IN_0_TENSOR_SIZE_DIM_0": 10,
                 "DATA_IN_0_TENSOR_SIZE_DIM_1": 1,
                 "DATA_IN_0_PARALLELISM_DIM_0": 10,
                 "DATA_IN_0_PARALLELISM_DIM_1": 1,
-                "DATA_IN_0_PRECISION_0": 8,
-                "DATA_IN_0_PRECISION_1": 4,
+                "DATA_IN_0_PRECISION_0": 5,
+                "DATA_IN_0_PRECISION_1": 1,
 
-                "DATA_OUT_0_PRECISION_0": 8,
-                "DATA_OUT_0_PRECISION_1": 4,
+                "DATA_OUT_0_PRECISION_0": 5,
+                "DATA_OUT_0_PRECISION_1": 1,
                 "DATA_OUT_0_TENSOR_SIZE_DIM_0": 10,
                 "DATA_OUT_0_TENSOR_SIZE_DIM_1": 1,
                 "DATA_OUT_0_PARALLELISM_DIM_0": 10,
                 "DATA_OUT_0_PARALLELISM_DIM_1": 1,
 
             }
+
 if __name__ == "__main__":
     mase_runner(
         module_param_list=[
