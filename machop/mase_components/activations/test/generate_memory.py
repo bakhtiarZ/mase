@@ -151,7 +151,7 @@ def generate_sv_lut(function_name, data_width, f_width, dir = None):
     if dir is None:
         lookup_to_sv_file(data_width, f_width, function_name, f'/workspace/machop/mase_components/activations/rtl/{function_name}_map.sv')
     else:
-        lookup_to_sv_file(data_width, f_width, function_name, f'{dir}/{function_name}_map_{data_width}.sv')
+        lookup_to_sv_file(data_width, f_width, function_name, f'{dir}/{function_name}_map_{data_width}_{f_width}.sv')
 
 
 if __name__ == "__main__":
