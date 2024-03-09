@@ -146,12 +146,13 @@ def generate_mem(function_name, data_width, f_width):
     assert function_name in FUNCTION_TABLE, f"Function {function_name} not found in FUNCTION_TABLE"
     lookup_to_file(data_width, f_width, function_name, f'/workspace/machop/mase_components/activations/rtl/{function_name}_map.mem')
 
-def generate_sv_lut(function_name, data_width, f_width, file_path = None):
+def generate_sv_lut(function_name, data_width, f_width, dir = None):
     assert function_name in FUNCTION_TABLE, f"Function {function_name} not found in FUNCTION_TABLE"
-    if file_path is None:
+    if dir is None:
         lookup_to_sv_file(data_width, f_width, function_name, f'/workspace/machop/mase_components/activations/rtl/{function_name}_map.sv')
-    
     else:
-        lookup_to_sv_file(data_width, f_width, function_name, f'{file_path}/{function_name}_map_{data_width}.sv')
+        lookup_to_sv_file(data_width, f_width, function_name, f'{dir}/{function_name}_map_{data_width}.sv')
 
-generate_sv_lut('silu', 8, 4, './luts_for_test/')
+
+if __name__ == "__main__":
+    generate_sv_lut("silu", 8, 4)
