@@ -120,7 +120,7 @@ def lookup_to_sv_file(data_width: int, f_width: int, function: str, file_path = 
     value_format = f"{data_width}'b{{}}"
 
     # Starting the module and case statement
-    sv_code = f"module {function}_lut(input logic [{data_width-1}:0] data_in_0, output logic [{data_width-1}:0] data_out_0);\n"
+    sv_code = f"module {function}_lut_{data_width}_{f_width}(input logic [{data_width-1}:0] data_in_0, output logic [{data_width-1}:0] data_out_0);\n"
     sv_code += "    always_comb begin\n"
     sv_code += "        case(data_in_0)\n"
 

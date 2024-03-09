@@ -1,4 +1,4 @@
-module silu_lut(input logic [1:0] data_in_0, output logic [1:0] data_out_0);
+module silu_lut_2_1(input logic [1:0] data_in_0, output logic [1:0] data_out_0);
     always_comb begin
         case(data_in_0)
             2'b00: data_out_0 = 2'b00;
