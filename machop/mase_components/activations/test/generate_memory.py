@@ -112,8 +112,46 @@ def lookup_to_file(data_width: int, f_width: int, function: str, file_path = Non
         file.write('\n'.join(str(value) for value in dicto.values()))
         file.write('\n')
 
+def lookup_to_sv_file(data_width: int, f_width: int, function: str, file_path = None):
+    dicto = aligned_generate_lookup(data_width=data_width, f_width=f_width, function=function, type="bin")
+    dicto = {k: v for k, v in dicto.items() if k not in ['data_width', 'f_width', 'func']}  
+    # Format for bit sizing
+    key_format = f"{data_width}'b{{}}"
+    value_format = f"{data_width}'b{{}}"
+
+    # Starting the module and case statement
+    sv_code = f"module {function}_lut(input logic [{data_width-1}:0] data_in_0, output logic [{data_width-1}:0] data_out_0);\n"
+    sv_code += "    always_comb begin\n"
+    sv_code += "        case(data_in_0)\n"
+
+    # Adding each case
+    for key, value in dicto.items():
+        formatted_key = key_format.format(key)
+        formatted_value = value_format.format(value)
+        sv_code += f"            {formatted_key}: data_out_0 = {formatted_value};\n"
+
+    # Ending the case statement and module
+    sv_code += f"            default: data_out_0 = {data_width}'b0;\n"
+    sv_code += "        endcase\n"
+    sv_code += "    end\n"
+    sv_code += "endmodule\n"
+
+    # Write the code to a SystemVerilog file
+    with open(file_path, "w") as file:
+        file.write(sv_code)
+
+    print(f"SystemVerilog module generated and saved as {file_path}.")
+
 def generate_mem(function_name, data_width, f_width):
     assert function_name in FUNCTION_TABLE, f"Function {function_name} not found in FUNCTION_TABLE"
     lookup_to_file(data_width, f_width, function_name, f'/workspace/machop/mase_components/activations/rtl/{function_name}_map.mem')
 
+def generate_sv_lut(function_name, data_width, f_width, file_path = None):
+    assert function_name in FUNCTION_TABLE, f"Function {function_name} not found in FUNCTION_TABLE"
+    if file_path is None:
+        lookup_to_sv_file(data_width, f_width, function_name, f'/workspace/machop/mase_components/activations/rtl/{function_name}_map.sv')
+    
+    else:
+        lookup_to_sv_file(data_width, f_width, function_name, f'{file_path}/{function_name}_map_{data_width}.sv')
 
+generate_sv_lut('silu', 8, 4, './luts_for_test/')

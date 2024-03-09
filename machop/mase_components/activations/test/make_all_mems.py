@@ -6,3 +6,4 @@ f_width = 4
 
 for f in fs:
     gm.generate_mem(f, d_width, f_width)
+    gm.generate_sv_lut(f, d_width, f_width)
