@@ -19,6 +19,7 @@ FUNCTION_TABLE = {
     'sigmoid': nn.Sigmoid(),
     'logsigmoid': nn.LogSigmoid(),
     'softshrink': nn.Softshrink(),
+    'exp': torch.exp,
 }
 
 def fxtodouble(data_width: int, f_width: int, fx_num: str):
