@@ -115,6 +115,7 @@ def lookup_to_file(data_width: int, f_width: int, function: str, file_path = Non
 
 def generate_mem(function_name, data_width, f_width):
     assert function_name in FUNCTION_TABLE, f"Function {function_name} not found in FUNCTION_TABLE"
-    lookup_to_file(data_width, f_width, function_name, f'/workspace/machop/mase_components/activations/rtl/{function_name}_map.mem')
+    lookup_to_file(data_width, f_width, function_name, f'/home/aw23/mase/machop/mase_components/activations/rtl/{function_name}_map.mem')
 
-
+if __name__ == "__main__":
+    print(FUNCTION_TABLE['exp'](torch.tensor(1.0)))

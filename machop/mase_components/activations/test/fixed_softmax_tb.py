@@ -82,7 +82,6 @@ class fixed_softmax_tb(Testbench):
 
     async def run_test(self):
         await self.reset()
-        print("reset finished")
         logger.info(f"Reset finished")
         self.data_out_0_monitor.ready.value = 1
         for i in range(1):
@@ -104,8 +103,8 @@ async def test(dut):
     data_width = dut_params["DATA_IN_0_PRECISION_0"] 
     frac_width = dut_params["DATA_IN_0_PRECISION_1"]
     nw_per_input = dut_params["DATA_IN_0_PARALLELISM_DIM_0"] * dut_params["DATA_IN_0_PARALLELISM_DIM_1"]
-    generate_memory.generate_mem("exp", data_width, frac_width)
-    
+    # generate_memory.generate_mem("exp", data_width, frac_width)
+    print("Generated memory")
     tb = fixed_softmax_tb(dut, dut_params, num_words=nw_per_input)
     await tb.run_test()
   
@@ -128,6 +127,7 @@ dut_params = {
 
 torch.manual_seed(1)
 if __name__ == "__main__":
+    generate_memory.generate_mem("exp", dut_params["DATA_IN_0_PARALLELISM_DIM_0"], dut_params["DATA_IN_0_PRECISION_1"])
     mase_runner(
         module_param_list=[
             dut_params
