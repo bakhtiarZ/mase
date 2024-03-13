@@ -106,7 +106,7 @@ def testlookup(lut):
             print("\n")
 
 def lookup_to_file(data_width: int, f_width: int, function: str, file_path = None):
-    dicto = aligned_generate_lookup(data_width=data_width, f_width=f_width, function=function, type="bin")
+    dicto = aligned_generate_lookup(data_width=data_width, f_width=f_width, function=function, type="hex")
     dicto = {k: v for k, v in dicto.items() if k not in ['data_width', 'f_width', 'func']}  
     with open(file_path, "w") as file:
     # Write values to the file separated by spaces
@@ -118,4 +118,10 @@ def generate_mem(function_name, data_width, f_width):
     lookup_to_file(data_width, f_width, function_name, f'/home/aw23/mase/machop/mase_components/activations/rtl/{function_name}_map.mem')
 
 if __name__ == "__main__":
-    print(FUNCTION_TABLE['exp'](torch.tensor(1.0)))
+    arguments = sys.argv[1:]
+    save_path = arguments[0]
+    function_name = arguments[1]
+    data_width = int(arguments[2])
+    f_width = int(arguments[3])
+    assert function_name in FUNCTION_TABLE, f"Function {function_name} not found in FUNCTION_TABLE"
+    lookup_to_file(data_width, f_width, function_name, f'{save_path}/{function_name}_map.mem')
