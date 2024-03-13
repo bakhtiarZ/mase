@@ -8,7 +8,7 @@ module fixed_softmax #(
     parameter DATA_IN_0_PARALLELISM_DIM_0 = 1,  // incoming elements -
     parameter DATA_IN_0_PARALLELISM_DIM_1 = 1,  // batch size
 
-    parameter IN_0_DEPTH = DATA_IN_0_TENSOR_SIZE_DIM_0 / DATA_IN_0_PARALLELISM_DIM_0,
+    parameter IN_0_DEPTH = $ceil(DATA_IN_0_TENSOR_SIZE_DIM_0 / DATA_IN_0_PARALLELISM_DIM_0),
 
     parameter DATA_OUT_0_PRECISION_0 = 8,
     parameter DATA_OUT_0_PRECISION_1 = 4,
@@ -77,64 +77,10 @@ module fixed_softmax #(
   localparam MEM_SIZE = (2**(DATA_IN_0_PRECISION_0)); //the threshold
   logic [DATA_INTERMEDIATE_0_PRECISION_0-1:0] exp [MEM_SIZE];
 
-  // split2 #(
-  // ) input_handshake_split (
-  //   .data_in_valid(data_in_0_valid),
-  //   .data_in_ready(data_in_0_ready),
-  //   .data_out_valid({ff_exp_in_data_valid, summed_in_valid}),
-  //   .data_out_ready({ff_exp_in_data_ready, summed_in_ready[0]})
-  // );
-
-
   initial begin
     $readmemb("/home/aw23/mase/machop/mase_components/activations/rtl/exp_map.mem", exp); // change name
   end              //mase/machop/mase_components/activations/rtl/elu_map.mem
   
-
-
-  // always_comb begin : blockName
-  //   if (summed_out_valid[0]) begin
-  //     // $display("Exponential = %p", exp_data);
-  //     // $display("Loaded Exp = %p", ff_exp_data);
-  //     $display("Summed Exp = %p", summed_exp_data);
-  //     // $display("Accum Exp = %p", accumulated_exp_data);
-  //     // $display("Softmax = %p", data_out_0);
-  //   end else begin
-  //     $display("kill me now");
-  //     $display("summed in val = %d", summed_in_valid);
-  //     $display("Buffer Output Ready = %d", ff_exp_data_ready);
-  //     $display("Accumulator Output Ready = %d", acc_out_ready);
-  //     $display("Buffer Input Ready = %d", ff_exp_in_data_ready);
-  //     $display("Summer Input Ready = %d", summed_in_ready[0]);
-  //   end
-  // end
-
- // I hope this stores all incoming inputs
- // I think I should change this to the roller thing
-  // input_buffer #(
-  //   .IN_WIDTH(DATA_INTERMEDIATE_0_PRECISION_0), //bitwdith
-  //   .IN_PARALLELISM(DATA_IN_0_PARALLELISM_DIM_0 * DATA_IN_0_PARALLELISM_DIM_1), // number of inputs - Parallelism DIM0
-  //   .IN_SIZE(1), // number of inputs - Parallelism DIM1
-
-  //   .BUFFER_SIZE(IN_0_DEPTH), 
-  //   .REPEAT(1),
-
-  //   .OUT_WIDTH(DATA_INTERMEDIATE_0_PRECISION_0),
-  //   .OUT_PARALLELISM(DATA_OUT_0_TENSOR_SIZE_DIM_0 * DATA_OUT_0_TENSOR_SIZE_DIM_1),
-  //   .OUT_SIZE(1)
-  // ) exp_buffer (
-  //   .clk(clk),
-  //   .rst(rst),
-
-  //   .data_in(exp_data),
-  //   .data_in_valid(ff_exp_in_data_valid), // write enable
-  //   .data_in_ready(ff_exp_in_data_ready), // full signal - ready until buffer is buffer ready goes low stopping new inputs
-
-  //   .data_out(ff_exp_data),
-  //   .data_out_valid(ff_exp_data_valid), // valid read
-  //   .data_out_ready(ff_exp_data_ready) // read enable I think
-  // );
-
   unpacked_fifo #(
       .DEPTH(IN_0_DEPTH),
       .DATA_WIDTH(DATA_INTERMEDIATE_0_PRECISION_0),
@@ -227,25 +173,6 @@ module fixed_softmax #(
     );
   end
 
-  // buffer the accumulated value correctly to be outputted at the same rate as ff_exp_data?
-
-//   input_buffer #(
-//     .IN_WIDTH(ACC_WIDTH),
-//     .IN_PARALLELISM(DATA_OUT_0_PARALLELISM_DIM_1),
-//     .IN_SIZE(1),
-//     .BUFFER_SIZE(1),
-//     .REPEAT(OUT_0_DEPTH)
-// ) acc_buffer (
-//     .clk(clk),
-//     .rst(rst),
-//     .data_in(accumulated_exp_data),
-//     .data_in_valid(acc_out_valid[0]),
-//     .data_in_ready(acc_out_ready), // write enable
-//     .data_out(ff_accumulated_exp_data),
-//     .data_out_valid(ff_acc_valid),
-//     .data_out_ready(ff_acc_ready) // read enable
-//   );
-
   hold_buffer #(
     .DATA_WIDTH(ACC_WIDTH),
     .DATA_SIZE(DATA_OUT_0_PARALLELISM_DIM_1),
@@ -291,7 +218,6 @@ module fixed_softmax #(
   );
 
 endmodule
-
 
 module hold_buffer #(
   parameter DATA_WIDTH = 16,
@@ -344,7 +270,6 @@ end
 
 // take an input and output it for depth length preventing further input from entering. 
 endmodule
-
 
 module quick_round #(
   parameter DATA_WIDTH = 8

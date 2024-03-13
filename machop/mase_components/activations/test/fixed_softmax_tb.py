@@ -13,7 +13,7 @@ from mase_cocotb.interfaces.streaming import StreamDriver, StreamMonitor, Stream
 from mase_cocotb.z_qlayers import quantize_to_int
 from mase_cocotb.runner import mase_runner
 from mase_cocotb.utils import bit_driver, sign_extend_t
-
+from math import ceil
 # from chop.passes.graph.transforms.quantize.quantized_modules import LinearInteger
 
 import torch
@@ -34,11 +34,11 @@ class fixed_softmax_tb(Testbench):
 
         self.num_words_per_input = dut_params["DATA_IN_0_TENSOR_SIZE_DIM_0"] * dut_params["DATA_IN_0_TENSOR_SIZE_DIM_1"]
         self.in_parallelism = dut_params["DATA_IN_0_PARALLELISM_DIM_0"] * dut_params["DATA_IN_0_PARALLELISM_DIM_1"]
-        self.num_of_in_splits = self.num_words_per_input // self.in_parallelism
+        self.num_of_in_splits = int(ceil(self.num_words_per_input / self.in_parallelism))
         
         self.num_of_words_per_output = dut_params["DATA_OUT_0_TENSOR_SIZE_DIM_0"] * dut_params["DATA_OUT_0_TENSOR_SIZE_DIM_1"]
         self.out_parallelism = dut_params["DATA_OUT_0_PARALLELISM_DIM_0"] * dut_params["DATA_OUT_0_PARALLELISM_DIM_1"]
-        self.num_of_out_splits = self.num_of_words_per_output // self.out_parallelism
+        self.num_of_out_splits = int(ceil(self.num_of_words_per_output / self.out_parallelism))
         
         self.data_in_0_driver = StreamDriver(
             dut.clk, dut.data_in_0, dut.data_in_0_valid, dut.data_in_0_ready
@@ -118,17 +118,21 @@ async def test(dut):
     await tb.run_test()
   
 dut_params = {
-                "DATA_IN_0_TENSOR_SIZE_DIM_0": 4,
-                "DATA_IN_0_TENSOR_SIZE_DIM_1": 1,
-                "DATA_IN_0_PARALLELISM_DIM_0": 2,
-                "DATA_IN_0_PARALLELISM_DIM_1": 1,
+                "DATA_IN_0_TENSOR_SIZE_DIM_0": 12,
+                "DATA_IN_0_TENSOR_SIZE_DIM_1": 4,
+                
+                "DATA_IN_0_PARALLELISM_DIM_0": 6,
+                "DATA_IN_0_PARALLELISM_DIM_1": 2,
+                
                 "DATA_IN_0_PRECISION_0": 16,
                 "DATA_IN_0_PRECISION_1": 8,
 
-                "DATA_OUT_0_PRECISION_0": 16,
-                "DATA_OUT_0_PRECISION_1": 8,
-                "DATA_OUT_0_TENSOR_SIZE_DIM_0": 4,
-                "DATA_OUT_0_TENSOR_SIZE_DIM_1": 1,
+                "DATA_OUT_0_PRECISION_0": 8,
+                "DATA_OUT_0_PRECISION_1": 4,
+                
+                "DATA_OUT_0_TENSOR_SIZE_DIM_0": 12,
+                "DATA_OUT_0_TENSOR_SIZE_DIM_1": 4,
+                
                 "DATA_OUT_0_PARALLELISM_DIM_0": 2,
                 "DATA_OUT_0_PARALLELISM_DIM_1": 1,
             }
