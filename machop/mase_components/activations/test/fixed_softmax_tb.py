@@ -9,7 +9,7 @@ from functools import partial
 from cocotb.triggers import *
 from chop.passes.graph.transforms.quantize.quantizers import *
 from mase_cocotb.testbench import Testbench 
-from mase_cocotb.interfaces.streaming import StreamDriver, StreamMonitor
+from mase_cocotb.interfaces.streaming import StreamDriver, StreamMonitor, StreamMonitorFloat
 from mase_cocotb.z_qlayers import quantize_to_int
 from mase_cocotb.runner import mase_runner
 from mase_cocotb.utils import bit_driver, sign_extend_t
@@ -43,8 +43,8 @@ class fixed_softmax_tb(Testbench):
         self.data_in_0_driver = StreamDriver(
             dut.clk, dut.data_in_0, dut.data_in_0_valid, dut.data_in_0_ready
         )
-        self.data_out_0_monitor = StreamMonitor(
-            dut.clk, dut.data_out_0, dut.data_out_0_valid, dut.data_out_0_ready
+        self.data_out_0_monitor = StreamMonitorFloat(
+            dut.clk, dut.data_out_0, dut.data_out_0_valid, dut.data_out_0_ready, self.outputwidth, self.outputfracw
         )  
 
         self.dquantizer = partial(
@@ -61,12 +61,12 @@ class fixed_softmax_tb(Testbench):
         # logger.info(f'IN EXP - Inputs: \n{inputs}')
         # logger.info(f'IN EXP - FLOAT Inputs: \n{inputs.float()}')
         inputs = torch.tensor(inputs, dtype=torch.float32)
-        inputs = inputs.view(self.num_of_out_splits, self.out_parallelism).squeeze()
-        
+        inputs = inputs.flatten()
         m = self.model(inputs.float())
-        logger.info(f'IN EXP - FLOAT OUTPUT: \n{m}')
+        m = m.view(self.num_of_out_splits, self.out_parallelism).squeeze()
+        # logger.info(f'IN EXP - FLOAT OUTPUT: \n{m}')
         m = self.dquantizer(m)
-        logger.info(f'IN EXP - DQ OUTPUT: \n{m}')
+        # logger.info(f'IN EXP - DQ OUTPUT: \n{m}')
         # mout = m.clamp(min=-1*2**(self.outputwidth-1), max = 2**(self.outputwidth-1)-1)
         m2 = (m * 2 ** self.frac_width).to(torch.int64)
         m2 = torch.where(m2 < 0, (m2.clone().detach() % (2**self.outputwidth)), m2)
@@ -99,10 +99,11 @@ class fixed_softmax_tb(Testbench):
             exp_out = self.exp(real_inp)
             exp_out = exp_out.tolist()
             logger.info("Inputs and expected generated")
-            print(inputs)
+            logger.info(f"inputs: {inputs}")
+            logger.info(f"exp_out: {exp_out}")
             self.data_in_0_driver.load_driver(inputs)
             # self.data_in_0_driver.append(inputs)
-            self.data_out_0_monitor.load_monitor([exp_out])
+            self.data_out_0_monitor.load_monitor(exp_out)
 
         await Timer(1000, units="us")
         assert self.data_out_0_monitor.exp_queue.empty()
@@ -128,9 +129,8 @@ dut_params = {
                 "DATA_OUT_0_PRECISION_1": 8,
                 "DATA_OUT_0_TENSOR_SIZE_DIM_0": 4,
                 "DATA_OUT_0_TENSOR_SIZE_DIM_1": 1,
-                "DATA_OUT_0_PARALLELISM_DIM_0": 4,
+                "DATA_OUT_0_PARALLELISM_DIM_0": 2,
                 "DATA_OUT_0_PARALLELISM_DIM_1": 1,
-
             }
 
 torch.manual_seed(1)

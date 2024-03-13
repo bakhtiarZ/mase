@@ -17,6 +17,7 @@ module roller #(
 
 );
   /* verilator lint_off WIDTH */
+  localparam STRAIGHT_THROUGH = (NUM == ROLL_NUM);
   localparam CYCLES = NUM / ROLL_NUM;
 
   logic [$clog2(CYCLES):0] counter, counter_next;
@@ -25,42 +26,62 @@ module roller #(
   logic [DATA_WIDTH-1:0] shift_reg_next[(CYCLES) * ROLL_NUM - 1:0];
 
   logic data_in_ready_next;
-
   logic shift_reg_empty;
-  assign shift_reg_empty = counter == 0;
-  // Output is valid if we have something stored in buffer or in shift_reg
-  assign data_out_valid = !shift_reg_empty;
 
-  // If data_in_ready is true, then we either have CYCLES or 0 in counter depending on if we have  filled in from in port
-  // Otherwise we decrease the counter if we will shift the registers.
-  assign counter_next = data_in_ready ? (data_in_valid ? CYCLES : 0) : (data_out_ready&&data_out_valid ? counter - 1: counter);
+  generate
+    if (STRAIGHT_THROUGH) begin
+      always_ff @(posedge clk) begin
+        if (rst) begin
+          counter <= 0;
+          data_in_ready <= 1'b1;
+        end else begin
+          counter <= counter_next;
+          data_in_ready <= data_in_ready_next;
+        end
+      end
 
-  // We can take in value if we know shift_reg will be free next cycle.
-  assign data_in_ready_next = counter_next == 0;
-  // shift_reg_next = {shift_reg[NUM - ROLL_NUM : NUM - 1], 0}
-  for (genvar i = 0; i < NUM - ROLL_NUM; i++) assign shift_reg_next[i] = shift_reg[i+ROLL_NUM];
-  for (genvar i = NUM - ROLL_NUM; i < NUM; i++) begin
-    assign shift_reg_next[i] = 0;
-    assign data_out[i-(NUM-ROLL_NUM)] = shift_reg[i-(NUM-ROLL_NUM)];
-  end
-  for (genvar i = 0; i < NUM; i++) assign zeros[i] = 0;
+      assign counter_next = data_in_ready ? (data_in_valid ? CYCLES : 0) : (data_out_ready&&data_out_valid ? counter - 1: counter);
+      assign data_in_ready_next = counter_next == 0;
 
-
-  always_ff @(posedge clk)
-    if (rst) begin
-      counter <= 0;
-      shift_reg <= zeros;
-      data_in_ready <= 1'b1;
+      assign data_out = data_in;
+      assign data_out_valid = data_in_valid;
     end else begin
-      counter <= counter_next;
-      data_in_ready <= data_in_ready_next;
+      assign shift_reg_empty = counter == 0;
+      // Output is valid if we have something stored in buffer or in shift_reg
+      assign data_out_valid = !shift_reg_empty;
 
-      // Don't consider the value data_in_valid when feeding into in_shaped
-      // to avoid data_in_valid from faning-out to all shift registers.
-      if (data_in_ready) shift_reg <= data_in;
-      else if (data_out_ready) shift_reg <= shift_reg_next;
-    end
+      // If data_in_ready is true, then we either have CYCLES or 0 in counter depending on if we have  filled in from in port
+      // Otherwise we decrease the counter if we will shift the registers.
+      assign counter_next = data_in_ready ? (data_in_valid ? CYCLES : 0) : (data_out_ready&&data_out_valid ? counter - 1: counter);
 
+      // We can take in value if we know shift_reg will be free next cycle.
+      assign data_in_ready_next = counter_next == 0;
+      // shift_reg_next = {shift_reg[NUM - ROLL_NUM : NUM - 1], 0}
+      for (genvar i = 0; i < NUM - ROLL_NUM; i++) assign shift_reg_next[i] = shift_reg[i+ROLL_NUM]; // ANDY CHECK
+      for (genvar i = NUM - ROLL_NUM; i < NUM; i++) begin
+        assign shift_reg_next[i] = 0;
+        assign data_out[i-(NUM-ROLL_NUM)] = shift_reg[i-(NUM-ROLL_NUM)];
+      end
+      for (genvar i = 0; i < NUM; i++) assign zeros[i] = 0;
+
+
+      always_ff @(posedge clk) begin
+        if (rst) begin
+          counter <= 0;
+          shift_reg <= zeros;
+          data_in_ready <= 1'b1;
+        end else begin
+          counter <= counter_next;
+          data_in_ready <= data_in_ready_next;
+
+          // Don't consider the value data_in_valid when feeding into in_shaped
+          // to avoid data_in_valid from faning-out to all shift registers.
+          if (data_in_ready) shift_reg <= data_in;
+          else if (data_out_ready) shift_reg <= shift_reg_next;
+        end
+      end
+    end 
+  endgenerate
 
 
 endmodule
