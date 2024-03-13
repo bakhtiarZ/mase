@@ -22,7 +22,7 @@ logger = logging.getLogger("testbench")
 logger.setLevel(logging.INFO)
 
 
-class fixed_sigmoid_tb(Testbench):
+class fixed_softmax_tb(Testbench):
     def __init__(self, dut, dut_params, num_words) -> None:
         super().__init__(dut, dut.clk, dut.rst)
 
@@ -45,7 +45,7 @@ class fixed_sigmoid_tb(Testbench):
             integer_quantizer, width=self.data_width, frac_width=self.frac_width, is_signed = True
         )
 
-        self.model = torch.nn.Sigmoid()
+        self.model = torch.nn.Softmax()
 
     def exp(self, inputs):
         # Run the model with the provided inputs and return the outputs
@@ -84,7 +84,7 @@ class fixed_sigmoid_tb(Testbench):
         await self.reset()
         logger.info(f"Reset finished")
         self.data_out_0_monitor.ready.value = 1
-        for i in range(1000):
+        for i in range(1):
             inputs, real_inp = self.generate_inputs()
             inputs = inputs.tolist()
             exp_out = self.exp(real_inp)
@@ -95,7 +95,7 @@ class fixed_sigmoid_tb(Testbench):
             # self.data_in_0_driver.append(inputs)
             self.data_out_0_monitor.load_monitor([exp_out])
 
-        await Timer(1000, units="us")
+        await Timer(10, units="us")
         assert self.data_out_0_monitor.exp_queue.empty()
 
 @cocotb.test()
@@ -103,9 +103,9 @@ async def test(dut):
     data_width = dut_params["DATA_IN_0_PRECISION_0"] 
     frac_width = dut_params["DATA_IN_0_PRECISION_1"]
     nw_per_input = dut_params["DATA_IN_0_PARALLELISM_DIM_0"] * dut_params["DATA_IN_0_PARALLELISM_DIM_1"]
-    generate_memory.generate_mem("sigmoid", data_width, frac_width)
-    
-    tb = fixed_sigmoid_tb(dut, dut_params, num_words=nw_per_input)
+    # generate_memory.generate_mem("exp", data_width, frac_width)
+    print("Generated memory")
+    tb = fixed_softmax_tb(dut, dut_params, num_words=nw_per_input)
     await tb.run_test()
   
 dut_params = {
@@ -113,10 +113,10 @@ dut_params = {
                 "DATA_IN_0_TENSOR_SIZE_DIM_1": 1,
                 "DATA_IN_0_PARALLELISM_DIM_0": 10,
                 "DATA_IN_0_PARALLELISM_DIM_1": 1,
-                "DATA_IN_0_PRECISION_0": 5,
+                "DATA_IN_0_PRECISION_0": 31,
                 "DATA_IN_0_PRECISION_1": 1,
 
-                "DATA_OUT_0_PRECISION_0": 5,
+                "DATA_OUT_0_PRECISION_0": 31,
                 "DATA_OUT_0_PRECISION_1": 1,
                 "DATA_OUT_0_TENSOR_SIZE_DIM_0": 10,
                 "DATA_OUT_0_TENSOR_SIZE_DIM_1": 1,
@@ -127,6 +127,7 @@ dut_params = {
 
 torch.manual_seed(1)
 if __name__ == "__main__":
+    generate_memory.generate_mem("exp", dut_params["DATA_IN_0_PARALLELISM_DIM_0"], dut_params["DATA_IN_0_PRECISION_1"])
     mase_runner(
         module_param_list=[
             dut_params

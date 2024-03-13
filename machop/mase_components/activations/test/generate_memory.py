@@ -19,6 +19,7 @@ FUNCTION_TABLE = {
     'sigmoid': nn.Sigmoid(),
     'logsigmoid': nn.LogSigmoid(),
     'softshrink': nn.Softshrink(),
+    'exp': torch.exp,
 }
 
 def fxtodouble(data_width: int, f_width: int, fx_num: str):
@@ -144,7 +145,7 @@ def lookup_to_sv_file(data_width: int, f_width: int, function: str, file_path = 
 
 def generate_mem(function_name, data_width, f_width):
     assert function_name in FUNCTION_TABLE, f"Function {function_name} not found in FUNCTION_TABLE"
-    lookup_to_file(data_width, f_width, function_name, f'/workspace/machop/mase_components/activations/rtl/{function_name}_map.mem')
+    lookup_to_file(data_width, f_width, function_name, f'/home/aw23/mase/machop/mase_components/activations/rtl/{function_name}_map.mem')
 
 def generate_sv_lut(function_name, data_width, f_width, dir = None):
     assert function_name in FUNCTION_TABLE, f"Function {function_name} not found in FUNCTION_TABLE"

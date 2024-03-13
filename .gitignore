@@ -21,7 +21,7 @@ vagrant/.vagrant/
 /machop/examples/**/data/
 /machop/cache/
 /machop/.machop_cache/
-
+/luts_for_test/
 # macOS
 .DS_Store
 
