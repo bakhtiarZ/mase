@@ -229,28 +229,13 @@ module fixed_softmax #(
 
   // buffer the accumulated value correctly to be outputted at the same rate as ff_exp_data?
 
-//   input_buffer #(
-//     .IN_WIDTH(ACC_WIDTH),
-//     .IN_PARALLELISM(DATA_OUT_0_PARALLELISM_DIM_1),
-//     .IN_SIZE(1),
-//     .BUFFER_SIZE(1),
-//     .REPEAT(OUT_0_DEPTH)
-// ) acc_buffer (
-//     .clk(clk),
-//     .rst(rst),
-//     .data_in(accumulated_exp_data),
-//     .data_in_valid(acc_out_valid[0]),
-//     .data_in_ready(acc_out_ready), // write enable
-//     .data_out(ff_accumulated_exp_data),
-//     .data_out_valid(ff_acc_valid),
-//     .data_out_ready(ff_acc_ready) // read enable
-//   );
-
-  hold_buffer #(
-    .DATA_WIDTH(ACC_WIDTH),
-    .DATA_SIZE(DATA_OUT_0_PARALLELISM_DIM_1),
-    .DEPTH(OUT_0_DEPTH)
-  ) acc_buffer (
+  input_buffer #(
+    .IN_WIDTH(ACC_WIDTH),
+    .IN_PARALLELISM(DATA_OUT_0_PARALLELISM_DIM_1),
+    .IN_SIZE(1),
+    .BUFFER_SIZE(1),
+    .REPEAT(OUT_0_DEPTH)
+) acc_buffer (
     .clk(clk),
     .rst(rst),
     .data_in(accumulated_exp_data),
@@ -262,23 +247,17 @@ module fixed_softmax #(
   );
 
 
-  logic [DATA_INTERMEDIATE_0_PRECISION_0 + DATA_INTERMEDIATE_0_PRECISION_1 :0] extended_divisor [DATA_IN_0_PARALLELISM_DIM_0*DATA_OUT_0_PARALLELISM_DIM_1-1:0]; // extra bit for rounding division
-  logic [DATA_INTERMEDIATE_0_PRECISION_0 + DATA_INTERMEDIATE_0_PRECISION_1 :0] extended_quotient [DATA_IN_0_PARALLELISM_DIM_0*DATA_OUT_0_PARALLELISM_DIM_1-1:0]; // extra bit for quantization
+
+  logic [DATA_INTERMEDIATE_0_PRECISION_0 + DATA_INTERMEDIATE_0_PRECISION_1 - 1:0] extended_divisor [DATA_IN_0_PARALLELISM_DIM_0*DATA_OUT_0_PARALLELISM_DIM_1-1:0];
+  logic [DATA_INTERMEDIATE_0_PRECISION_0 + DATA_INTERMEDIATE_0_PRECISION_1 - 1:0] extended_quotient [DATA_IN_0_PARALLELISM_DIM_0*DATA_OUT_0_PARALLELISM_DIM_1-1:0];
 
   for (genvar i = 0; i < DATA_OUT_0_PARALLELISM_DIM_1; i++) begin : scale_batches
     for (genvar j = 0; j < DATA_OUT_0_PARALLELISM_DIM_0; j++) begin : div_elements
       always_comb begin
-        extended_divisor[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j] = ff_exp_data[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j] << DATA_INTERMEDIATE_0_PRECISION_1 + 1;
+        extended_divisor[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j] = ff_exp_data[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j] << DATA_INTERMEDIATE_0_PRECISION_1;
         extended_quotient[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j]  = extended_divisor[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j] / ff_accumulated_exp_data[i];
-        // data_out_0[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j] = extended_quotient[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j][DATA_OUT_0_PRECISION_0-1:0];
+        data_out_0[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j] = extended_quotient[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j][DATA_OUT_0_PRECISION_0-1:0];
       end
-        quick_round #(
-          .DATA_WIDTH(DATA_OUT_0_PRECISION_0)
-        ) round (
-          .data_in(extended_quotient[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j][DATA_OUT_0_PRECISION_0-1:1]),
-          .round_bit(extended_quotient[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j][0]),
-          .data_out(data_out_0[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j])
-        );
     end
   end
 
@@ -289,71 +268,5 @@ module fixed_softmax #(
     .data_out_valid(data_out_0_valid),
     .data_out_ready(data_out_0_ready)
   );
-
-endmodule
-
-
-module hold_buffer #(
-  parameter DATA_WIDTH = 16,
-  parameter DATA_SIZE = 4,
-  parameter DEPTH = 1
-) (
-  input rst,
-  input clk,
-
-  input logic[DATA_WIDTH - 1: 0] data_in [DATA_SIZE - 1:0],
-  input logic data_in_valid,
-  output logic data_in_ready,
-
-  output logic[DATA_WIDTH - 1: 0] data_out [DATA_SIZE - 1:0],
-  output logic data_out_valid,
-  input logic data_out_ready
-);
-
-logic [$clog2(DEPTH) : 0] count;
-logic[DATA_WIDTH - 1: 0] data_out_register [DATA_SIZE - 1:0];
-assign data_out = data_out_register;
-always_ff @(posedge clk) begin
-  if (rst) begin
-    count <= 0;
-    // data_out_register <= 0;
-    data_out_valid <= 0;
-    data_in_ready <= 1;
-  end else begin
-    if (count == 0) begin
-      // The buffer is empty
-      if (data_in_valid) begin
-        data_out_register <= data_in;
-        count <= DEPTH;
-        data_out_valid <= 1;
-        data_in_ready <= 0;
-      end else begin
-        data_in_ready <= data_out_ready;
-        data_out_valid <= 0;
-      end
-    end else begin
-      // The buffer has data
-      if (data_out_ready) begin
-        count <= count - 1;
-      end else begin
-        count <= count;
-      end
-    end
-  end
-end
-
-// take an input and output it for depth length preventing further input from entering. 
-endmodule
-
-
-module quick_round #(
-  parameter DATA_WIDTH = 8
-) (
-  input logic[DATA_WIDTH - 1:0] data_in,
-  input logic round_bit,
-  output logic[DATA_WIDTH - 1:0] data_out
-);
-
-assign data_out = round_bit ? (data_in + 1) : (data_in);
 
 endmodule
