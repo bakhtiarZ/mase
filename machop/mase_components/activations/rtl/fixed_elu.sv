@@ -8,7 +8,7 @@ module fixed_elu #(
     parameter DATA_IN_0_PARALLELISM_DIM_0 = 1,
     parameter DATA_IN_0_PARALLELISM_DIM_1 = 1,
 
-    parameter IN_0_DEPTH = $ceil(DATA_IN_0_TENSOR_SIZE_DIM_0 / DATA_IN_0_PARALLELISM_DIM_0),
+    parameter IN_0_DEPTH = $rtoi($ceil(DATA_IN_0_TENSOR_SIZE_DIM_0 / DATA_IN_0_PARALLELISM_DIM_0)),
 
     parameter DATA_OUT_0_PRECISION_0 = 8,
     parameter DATA_OUT_0_PRECISION_1 = 4,

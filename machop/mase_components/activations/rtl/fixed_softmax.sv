@@ -8,7 +8,7 @@ module fixed_softmax #(
     parameter DATA_IN_0_PARALLELISM_DIM_0 = 1,  // incoming elements -
     parameter DATA_IN_0_PARALLELISM_DIM_1 = 1,  // batch size
 
-    parameter IN_0_DEPTH = $ceil(DATA_IN_0_TENSOR_SIZE_DIM_0 / DATA_IN_0_PARALLELISM_DIM_0),
+    parameter IN_0_DEPTH = $rtoi($ceil(DATA_IN_0_TENSOR_SIZE_DIM_0 / DATA_IN_0_PARALLELISM_DIM_0)),
 
     parameter DATA_OUT_0_PRECISION_0 = 8,
     parameter DATA_OUT_0_PRECISION_1 = 4,
@@ -17,7 +17,7 @@ module fixed_softmax #(
     parameter DATA_OUT_0_PARALLELISM_DIM_0 = 1,
     parameter DATA_OUT_0_PARALLELISM_DIM_1 = 1,
 
-    parameter OUT_0_DEPTH = DATA_OUT_0_TENSOR_SIZE_DIM_0 / DATA_OUT_0_PARALLELISM_DIM_0,
+    parameter OUT_0_DEPTH = $rtoi($ceil(DATA_OUT_0_TENSOR_SIZE_DIM_0 / DATA_OUT_0_PARALLELISM_DIM_0)),
 
     parameter DATA_INTERMEDIATE_0_PRECISION_0 = DATA_OUT_0_PRECISION_0,
     parameter DATA_INTERMEDIATE_0_PRECISION_1 = DATA_OUT_0_PRECISION_1
@@ -39,8 +39,8 @@ module fixed_softmax #(
   // Can handle multiple batches at once
   // each iteration recieves a batch of blocks
 
-  logic [DATA_INTERMEDIATE_0_PRECISION_0-1:0] ff_data[DATA_IN_0_PARALLELISM_DIM_0*DATA_IN_0_PARALLELISM_DIM_1-1:0];
-  logic [DATA_INTERMEDIATE_0_PRECISION_0-1:0] roll_data[DATA_OUT_0_PARALLELISM_DIM_0*DATA_OUT_0_PARALLELISM_DIM_1-1:0];
+  logic [DATA_IN_0_PRECISION_0-1:0] ff_data[DATA_IN_0_PARALLELISM_DIM_0*DATA_IN_0_PARALLELISM_DIM_1-1:0];
+  logic [DATA_IN_0_PRECISION_0-1:0] roll_data[DATA_OUT_0_PARALLELISM_DIM_0*DATA_OUT_0_PARALLELISM_DIM_1-1:0];
   logic [DATA_INTERMEDIATE_0_PRECISION_0-1:0] exp_data[DATA_OUT_0_PARALLELISM_DIM_0*DATA_OUT_0_PARALLELISM_DIM_1-1:0];
   logic [DATA_INTERMEDIATE_0_PRECISION_0-1:0] ff_exp_data[DATA_OUT_0_PARALLELISM_DIM_0*DATA_OUT_0_PARALLELISM_DIM_1-1:0];
 
@@ -56,19 +56,19 @@ module fixed_softmax #(
   logic ff_exp_data_valid;
   logic ff_exp_data_ready;
 
-  localparam SUM_WIDTH = $clog2(DATA_IN_0_PARALLELISM_DIM_0) + DATA_INTERMEDIATE_0_PRECISION_0;
-  localparam ACC_WIDTH = $clog2(IN_0_DEPTH) + SUM_WIDTH;
+  localparam SUM_WIDTH = $clog2(DATA_OUT_0_PARALLELISM_DIM_0) + DATA_INTERMEDIATE_0_PRECISION_0;
+  localparam ACC_WIDTH = $clog2(OUT_0_DEPTH) + SUM_WIDTH;
 
-  logic [SUM_WIDTH-1:0] summed_exp_data [DATA_IN_0_PARALLELISM_DIM_1-1:0]; // sum of current block
-  logic summed_out_valid [DATA_IN_0_PARALLELISM_DIM_1-1:0];
-  logic summed_out_ready [DATA_IN_0_PARALLELISM_DIM_1-1:0];
-  logic summed_in_ready [DATA_IN_0_PARALLELISM_DIM_1-1:0];
+  logic [SUM_WIDTH-1:0] summed_exp_data [DATA_OUT_0_PARALLELISM_DIM_1-1:0]; // sum of current block
+  logic summed_out_valid [DATA_OUT_0_PARALLELISM_DIM_1-1:0];
+  logic summed_out_ready [DATA_OUT_0_PARALLELISM_DIM_1-1:0];
+  logic summed_in_ready [DATA_OUT_0_PARALLELISM_DIM_1-1:0];
   logic summed_in_valid;
 
-  logic [ACC_WIDTH-1:0] accumulated_exp_data [DATA_IN_0_PARALLELISM_DIM_1-1:0]; // accumulation of total vector
-  logic [ACC_WIDTH-1:0] ff_accumulated_exp_data [DATA_IN_0_PARALLELISM_DIM_1-1:0]; // accumulation of total vector
+  logic [ACC_WIDTH-1:0] accumulated_exp_data [DATA_OUT_0_PARALLELISM_DIM_1-1:0]; // accumulation of total vector
+  logic [ACC_WIDTH-1:0] ff_accumulated_exp_data [DATA_OUT_0_PARALLELISM_DIM_1-1:0]; // accumulation of total vector
   
-  logic acc_out_valid [DATA_IN_0_PARALLELISM_DIM_1-1:0];
+  logic acc_out_valid [DATA_OUT_0_PARALLELISM_DIM_1-1:0];
   logic acc_out_ready;
 
   logic ff_acc_valid;
@@ -78,12 +78,21 @@ module fixed_softmax #(
   logic [DATA_INTERMEDIATE_0_PRECISION_0-1:0] exp [MEM_SIZE];
 
   initial begin
-    $readmemb("/home/aw23/mase/machop/mase_components/activations/rtl/exp_map.mem", exp); // change name
+    string filename = "/home/aw23/mase/machop/mase_components/activations/rtl/exp_IN16_8_OUT8_4_map.mem";
+    
+    // $sformat(in_data_string, "%s", DATA_IN_0_PRECISION_0);
+    // $sformat(in_f_string, "%s", DATA_IN_0_PRECISION_1);
+    // $sformat(out_data_string, "%s", DATA_OUT_0_PRECISION_0);
+    // $sformat(out_f_string, "%s", DATA_OUT_0_PRECISION_1);
+
+    // $sformat(filename, "/home/aw23/mase/machop/mase_components/activations/rtl/exp_IN%d_%d_OUT%d_%d_map.mem", DATA_IN_0_PRECISION_0, DATA_IN_0_PRECISION_1, DATA_OUT_0_PRECISION_0, DATA_OUT_0_PRECISION_1);
+    $display("%s", filename);
+    $readmemb(filename, exp); // change name
   end              //mase/machop/mase_components/activations/rtl/elu_map.mem
   
   unpacked_fifo #(
       .DEPTH(IN_0_DEPTH),
-      .DATA_WIDTH(DATA_INTERMEDIATE_0_PRECISION_0),
+      .DATA_WIDTH(DATA_IN_0_PRECISION_0),
       .IN_NUM(DATA_IN_0_PARALLELISM_DIM_0*DATA_IN_0_PARALLELISM_DIM_1)
   ) roller_buffer (
       .clk(clk),
@@ -97,7 +106,7 @@ module fixed_softmax #(
   );
   
   roller #(
-      .DATA_WIDTH(DATA_INTERMEDIATE_0_PRECISION_0),
+      .DATA_WIDTH(DATA_IN_0_PRECISION_0),
       .NUM(DATA_IN_0_PARALLELISM_DIM_0*DATA_IN_0_PARALLELISM_DIM_1),
       .ROLL_NUM(DATA_OUT_0_PARALLELISM_DIM_0*DATA_OUT_0_PARALLELISM_DIM_1)
   ) roller_inst (

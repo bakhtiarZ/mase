@@ -55,14 +55,18 @@ def generate_lookup(data_width: int, f_width: int, function : str, type = "hex")
         i+= 2 ** -(f_width)
     return lut
 
-def aligned_generate_lookup(data_width: int, f_width: int, function : str, type = "hex"):
+def aligned_generate_lookup(in_data_width, in_f_width, data_width: int, f_width: int, function : str, type = "hex"):
     f = FUNCTION_TABLE[function]
     lut = {'data_width': data_width,
            'f_width' : f_width,
-           'func' : FUNCTION_TABLE[function]}
+           'in_data_width': data_width,
+           'in_f_width' : f_width,
+           'func' : FUNCTION_TABLE[function]
+           }
     # entries = 2 ** data_width
-    minval = float(-2 ** (data_width-f_width-1))
-    maxval = (2**(data_width-1) - 1) * 2**(-f_width)
+    minval = float(-2 ** (in_data_width-in_f_width-1))
+    maxval = (2**(in_data_width-1) - 1) * 2**(-in_f_width)
+    inp_quanter = make_quantizer(in_data_width, in_f_width)
     quanter = make_quantizer(data_width, f_width)
     count = 0
     iarr = []
@@ -71,16 +75,16 @@ def aligned_generate_lookup(data_width: int, f_width: int, function : str, type 
         count +=1
         iarr.append(pi)
         val = quanter(f(torch.tensor(pi))) # entry in the lookup table
-        lut[doubletofx(data_width=data_width, f_width=f_width, num=pi, type=type)] = doubletofx(data_width=data_width, f_width=f_width, num=val.item(), type=type)
-        pi += 2 ** -(f_width)
+        lut[doubletofx(data_width=in_data_width, f_width=in_f_width, num=pi, type=type)] = doubletofx(data_width=data_width, f_width=f_width, num=val.item(), type=type)
+        pi += 2 ** -(in_f_width)
     i = minval
-    while i <= -1 * 2**-(f_width):
+    while i <= -1 * 2**-(in_f_width):
         count +=1
         iarr.append(i)
         val = quanter(f(torch.tensor(i))) # entry in the lookup table
-        lut[doubletofx(data_width=data_width, f_width=f_width, num=i, type=type)] = doubletofx(data_width=data_width, f_width=f_width, num=val.item(), type=type)
-        i+= 2 ** -(f_width)
-    iarr = [(x * 2 **(f_width)) for x in iarr]
+        lut[doubletofx(data_width=in_data_width, f_width=in_f_width, num=i, type=type)] = doubletofx(data_width=data_width, f_width=f_width, num=val.item(), type=type)
+        i+= 2 ** -(in_f_width)
+    iarr = [(x * 2 **(in_f_width)) for x in iarr]
     # print(iarr)
     return lut
 
@@ -89,11 +93,13 @@ def testlookup(lut):
     d = lut['data_width']
     f = lut['f_width']
     func = lut['func']
+    idwidth = lut['in_data_width']
+    ifracwidth = lut['in_f_width']
     quanter = make_quantizer(d,f)
     for k, v in lut.items():
-        if v == d or v==f or v == func:
+        if v == d or v==f or v == func or v == idwidth or v == ifracwidth:
             continue
-        inp = fxtodouble(d,f,k)
+        inp = fxtodouble(idwidth,ifracwidth,k)
         outactual = func(torch.tensor(inp))
         outactual = quanter(outactual).item()
         outlut = fxtodouble(d,f,v)
@@ -105,9 +111,9 @@ def testlookup(lut):
             print(f"double from lut {outlut}, bin from lut {v}")
             print("\n")
 
-def lookup_to_file(data_width: int, f_width: int, function: str, file_path = None):
-    dicto = aligned_generate_lookup(data_width=data_width, f_width=f_width, function=function, type="bin")
-    dicto = {k: v for k, v in dicto.items() if k not in ['data_width', 'f_width', 'func']}  
+def lookup_to_file(in_data_width, in_f_width, data_width: int, f_width: int, function: str, file_path = None):
+    dicto = aligned_generate_lookup(in_data_width=in_data_width, in_f_width=in_f_width, data_width=data_width, f_width=f_width, function=function, type="bin")
+    dicto = {k: v for k, v in dicto.items() if k not in ['data_width', 'f_width', 'func', 'in_data_width', 'in_f_width']}  
     with open(file_path, "w") as file:
     # Write values to the file separated by spaces
         file.write('\n'.join(str(value) for value in dicto.values()))
@@ -143,9 +149,9 @@ def lookup_to_sv_file(data_width: int, f_width: int, function: str, file_path = 
 
     print(f"SystemVerilog module generated and saved as {file_path}.")
 
-def generate_mem(function_name, data_width, f_width):
+def generate_mem(function_name, in_data_width, in_f_width, data_width, f_width):
     assert function_name in FUNCTION_TABLE, f"Function {function_name} not found in FUNCTION_TABLE"
-    lookup_to_file(data_width, f_width, function_name, f'/home/aw23/mase/machop/mase_components/activations/rtl/{function_name}_map.mem')
+    lookup_to_file(in_data_width, in_f_width, data_width, f_width, function_name, f'/home/aw23/mase/machop/mase_components/activations/rtl/{function_name}_IN{in_data_width}_{in_f_width}_OUT{data_width}_{f_width}_map.mem')
 
 def generate_sv_lut(function_name, data_width, f_width, dir = None):
     assert function_name in FUNCTION_TABLE, f"Function {function_name} not found in FUNCTION_TABLE"
@@ -156,4 +162,7 @@ def generate_sv_lut(function_name, data_width, f_width, dir = None):
 
 
 if __name__ == "__main__":
-    generate_sv_lut("silu", 8, 4)
+    # generate_sv_lut("silu", 8, 4)
+    dicto = aligned_generate_lookup(in_data_width=16, in_f_width=8, data_width=8, f_width=4, function='exp', type="bin")
+    # dicto = {k: v for k, v in dicto.items() if k not in ['data_width', 'f_width', 'func', 'in_data_width', 'in_f_width']}  
+    testlookup(dicto)
