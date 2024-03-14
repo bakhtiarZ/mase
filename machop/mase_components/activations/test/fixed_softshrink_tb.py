@@ -64,7 +64,9 @@ class fixed_softshrink_tb(Testbench):
         self.data_out_0_monitor = StreamMonitorFloat(
             dut.clk, dut.data_out_0, dut.data_out_0_valid, dut.data_out_0_ready, self.outputwidth, self.outputfracw
         )  
-
+        # self.data_out_0_monitor = StreamMonitor(
+        #     dut.clk, dut.data_out_0, dut.data_out_0_valid, dut.data_out_0_ready
+        # )  
         self.in_dquantizer = partial(
             integer_quantizer, width=self.data_width, frac_width=self.frac_width, is_signed = True
         )
@@ -140,11 +142,11 @@ dut_params = {
                 "DATA_IN_0_PARALLELISM_DIM_0": 2,
                 "DATA_IN_0_PARALLELISM_DIM_1": 1,
                 
-                "DATA_IN_0_PRECISION_0": 14,
-                "DATA_IN_0_PRECISION_1": 8,
+                "DATA_IN_0_PRECISION_0": 8,
+                "DATA_IN_0_PRECISION_1": 4,
 
-                "DATA_OUT_0_PRECISION_0": 15,
-                "DATA_OUT_0_PRECISION_1": 5,
+                "DATA_OUT_0_PRECISION_0": 8,
+                "DATA_OUT_0_PRECISION_1": 4,
                 
                 "DATA_OUT_0_TENSOR_SIZE_DIM_0": 12,
                 "DATA_OUT_0_TENSOR_SIZE_DIM_1": 4,
