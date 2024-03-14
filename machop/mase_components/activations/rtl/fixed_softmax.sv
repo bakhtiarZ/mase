@@ -78,7 +78,7 @@ module fixed_softmax #(
   logic [DATA_INTERMEDIATE_0_PRECISION_0-1:0] exp [MEM_SIZE];
 
   initial begin
-    string filename = "/home/aw23/mase/machop/mase_components/activations/rtl/exp_IN16_8_OUT8_4_map.mem";
+    string filename = "/home/aw23/mase/machop/mase_components/activations/rtl/exp_IN16_8_OUT16_8_map.mem";
     
     // $sformat(in_data_string, "%s", DATA_IN_0_PRECISION_0);
     // $sformat(in_f_string, "%s", DATA_IN_0_PRECISION_1);
@@ -151,36 +151,46 @@ module fixed_softmax #(
   );
 
 
+generate
   for (genvar i = 0; i < DATA_OUT_0_PARALLELISM_DIM_1; i++) begin : accumulate_batches
-    
-    fixed_adder_tree #(
-        .IN_SIZE (DATA_OUT_0_PARALLELISM_DIM_0),
-        .IN_WIDTH(DATA_INTERMEDIATE_0_PRECISION_0)
-    ) block_sum (
-        .clk(clk),
-        .rst(rst),
-        .data_in(exp_data[DATA_OUT_0_PARALLELISM_DIM_0*i +: DATA_OUT_0_PARALLELISM_DIM_0]),
-        .data_in_valid(summed_in_valid), // adder enable
-        .data_in_ready(summed_in_ready[i]), // addition complete - need to join with the buffer ready and many readys
-        .data_out(summed_exp_data[i]), // create a sum variable for the mini set 
-        .data_out_valid(summed_out_valid[i]), // sum is valid
-        .data_out_ready(summed_out_ready[i]) // next module needs the sum 
-    );
+      if (DATA_OUT_0_PARALLELISM_DIM_0 > 1) begin
+        fixed_adder_tree #(
+            .IN_SIZE (DATA_OUT_0_PARALLELISM_DIM_0),
+            .IN_WIDTH(DATA_INTERMEDIATE_0_PRECISION_0)
+        ) block_sum (
+            .clk(clk),
+            .rst(rst),
+            .data_in(exp_data[DATA_OUT_0_PARALLELISM_DIM_0*i +: DATA_OUT_0_PARALLELISM_DIM_0]),
+            .data_in_valid(summed_in_valid), // adder enable
+            .data_in_ready(summed_in_ready[i]), // addition complete - need to join with the buffer ready and many readys
+            .data_out(summed_exp_data[i]), // create a sum variable for the mini set 
+            .data_out_valid(summed_out_valid[i]), // sum is valid
+            .data_out_ready(summed_out_ready[i]) // next module needs the sum 
+        );
 
-    fixed_accumulator #(
-        .IN_WIDTH(SUM_WIDTH),
-        .IN_DEPTH(OUT_0_DEPTH)
-    ) fixed_accumulator_inst (
-        .clk(clk),
-        .rst(rst),
-        .data_in(summed_exp_data[i]), // sum variable for mini set
-        .data_in_valid(summed_out_valid[i]), // accumulator enable
-        .data_in_ready(summed_out_ready[i]), // accumulator complete
-        .data_out(accumulated_exp_data[i]), // accumulated variable
-        .data_out_valid(acc_out_valid[i]), //accumulation of ALL variables complete (this is my state machine)
-        .data_out_ready(acc_out_ready) // Start the accumulation
-    );
-  end
+      end else begin
+        assign summed_exp_data[i] = exp_data[i]; // DATA_OUT_PLL_0 == 1
+        assign summed_out_valid[i] = summed_in_valid;
+        assign summed_in_ready[i] = summed_out_ready[i];
+      end
+
+
+
+      fixed_accumulator #(
+          .IN_WIDTH(SUM_WIDTH),
+          .IN_DEPTH(OUT_0_DEPTH)
+      ) fixed_accumulator_inst (
+          .clk(clk),
+          .rst(rst),
+          .data_in(summed_exp_data[i]), // sum variable for mini set
+          .data_in_valid(summed_out_valid[i]), // accumulator enable
+          .data_in_ready(summed_out_ready[i]), // accumulator complete
+          .data_out(accumulated_exp_data[i]), // accumulated variable
+          .data_out_valid(acc_out_valid[i]), //accumulation of ALL variables complete (this is my state machine)
+          .data_out_ready(acc_out_ready) // Start the accumulation
+      );
+    end
+  endgenerate
 
   hold_buffer #(
     .DATA_WIDTH(ACC_WIDTH),
@@ -204,16 +214,16 @@ module fixed_softmax #(
   for (genvar i = 0; i < DATA_OUT_0_PARALLELISM_DIM_1; i++) begin : scale_batches
     for (genvar j = 0; j < DATA_OUT_0_PARALLELISM_DIM_0; j++) begin : div_elements
       always_comb begin
-        extended_divisor[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j] = ff_exp_data[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j] << DATA_INTERMEDIATE_0_PRECISION_1 + 1;
-        extended_quotient[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j]  = extended_divisor[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j] / ff_accumulated_exp_data[i];
+        extended_divisor[DATA_OUT_0_PARALLELISM_DIM_0*(i) + j] = ff_exp_data[DATA_OUT_0_PARALLELISM_DIM_0*(i) + j] << DATA_INTERMEDIATE_0_PRECISION_1 + 1;
+        extended_quotient[DATA_OUT_0_PARALLELISM_DIM_0*(i) + j]  = extended_divisor[DATA_OUT_0_PARALLELISM_DIM_0*(i) + j] / ff_accumulated_exp_data[i];
         // data_out_0[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j] = extended_quotient[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j][DATA_OUT_0_PRECISION_0-1:0];
       end
         quick_round #(
           .DATA_WIDTH(DATA_OUT_0_PRECISION_0)
         ) round (
-          .data_in(extended_quotient[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j][DATA_OUT_0_PRECISION_0-1:1]),
-          .round_bit(extended_quotient[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j][0]),
-          .data_out(data_out_0[DATA_OUT_0_PARALLELISM_DIM_1*(i) + j])
+          .data_in(extended_quotient[DATA_OUT_0_PARALLELISM_DIM_0*(i) + j][DATA_OUT_0_PRECISION_0-1:1]),
+          .round_bit(extended_quotient[DATA_OUT_0_PARALLELISM_DIM_0*(i) + j][0]),
+          .data_out(data_out_0[DATA_OUT_0_PARALLELISM_DIM_0*(i) + j])
         );
     end
   end

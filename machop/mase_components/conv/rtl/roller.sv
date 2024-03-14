@@ -30,21 +30,37 @@ module roller #(
 
   generate
     if (STRAIGHT_THROUGH) begin
-      always_ff @(posedge clk) begin
-        if (rst) begin
-          counter <= 0;
-          data_in_ready <= 1'b1;
-        end else begin
-          counter <= counter_next;
-          data_in_ready <= data_in_ready_next;
-        end
-      end
+    //   always_ff @(posedge clk) begin
+    //     if (rst) begin
+    //       counter <= 0;
+    //       data_in_ready <= 1'b1;
+    //     end else begin
+    //       counter <= counter_next;
+    //       data_in_ready <= data_in_ready_next;
+    //     end
+    //   end
 
-      assign counter_next = data_in_ready ? (data_in_valid ? CYCLES : 0) : (data_out_ready&&data_out_valid ? counter - 1: counter);
-      assign data_in_ready_next = counter_next == 0;
+    //   assign counter_next = data_in_ready ? (data_in_valid ? CYCLES : 0) : (data_out_ready&&data_out_valid ? counter - 1: counter);
+    //   assign data_in_ready_next = counter_next == 0;
 
-      assign data_out = data_in;
-      assign data_out_valid = data_in_valid;
+    //   assign data_out = data_in;
+    //   assign data_out_valid = data_in_valid;
+    unpacked_register_slice #(
+        .DATA_WIDTH(DATA_WIDTH),
+        .IN_SIZE(NUM),
+    )  single_buffer (
+        .clk(clk),
+        .rst(rst),
+
+        .in_data(data_in),
+        .in_valid(data_in_valid),
+        .in_ready(data_in_ready),
+
+        .out_data(data_out),
+        .out_valid(data_out_valid),
+        .out_ready(data_out_ready)
+    );
+
     end else begin
       assign shift_reg_empty = counter == 0;
       // Output is valid if we have something stored in buffer or in shift_reg
