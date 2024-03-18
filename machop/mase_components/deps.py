@@ -102,6 +102,7 @@ MASE_HW_DEPS = {
     'activations/fixed_silu': ['common', 'cast'],
     'activations/fixed_elu': ['common', 'cast'],
     'activations/fixed_sigmoid': ['common', 'cast'],
+    'activations/fixed_softshrink': ['common', 'cast'],
     'activations/fixed_logsigmoid': ['common', 'cast'],
     'activations/fixed_softmax': ['common', 'cast', 'fixed_arithmetic', 'conv'], # for some reason roller is in conv
 }
