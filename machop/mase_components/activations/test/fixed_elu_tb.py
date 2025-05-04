@@ -197,18 +197,18 @@ async def test(dut):
 
 
 dut_params = {
-    "DATA_IN_0_TENSOR_SIZE_DIM_0": 12,
-    "DATA_IN_0_TENSOR_SIZE_DIM_1": 12,
-    "DATA_IN_0_PARALLELISM_DIM_0": 4,
-    "DATA_IN_0_PARALLELISM_DIM_1": 3,
-    "DATA_IN_0_PRECISION_0": 8,
-    "DATA_IN_0_PRECISION_1": 4,
-    "DATA_OUT_0_PRECISION_0": 8,
-    "DATA_OUT_0_PRECISION_1": 4,
-    "DATA_OUT_0_TENSOR_SIZE_DIM_0": 12,
-    "DATA_OUT_0_TENSOR_SIZE_DIM_1": 12,
-    "DATA_OUT_0_PARALLELISM_DIM_0": 4,
-    "DATA_OUT_0_PARALLELISM_DIM_1": 3,
+    "DATA_IN_0_TENSOR_SIZE_DIM_0": 2,
+    "DATA_IN_0_TENSOR_SIZE_DIM_1": 2,
+    "DATA_IN_0_PARALLELISM_DIM_0": 2,
+    "DATA_IN_0_PARALLELISM_DIM_1": 2,
+    "DATA_IN_0_PRECISION_0": 2,
+    "DATA_IN_0_PRECISION_1": 2,
+    "DATA_OUT_0_PRECISION_0": 2,
+    "DATA_OUT_0_PRECISION_1": 2,
+    "DATA_OUT_0_TENSOR_SIZE_DIM_0": 2,
+    "DATA_OUT_0_TENSOR_SIZE_DIM_1": 2,
+    "DATA_OUT_0_PARALLELISM_DIM_0": 2,
+    "DATA_OUT_0_PARALLELISM_DIM_1": 2,
 }
 
 torch.manual_seed(1)
@@ -222,4 +222,5 @@ if __name__ == "__main__":
         dut_params["DATA_OUT_0_PRECISION_1"],
     )
     print("Generated memory")
-    mase_runner(module_param_list=[dut_params])
+    mase_runner(trace=True,
+                module_param_list=[dut_params])
