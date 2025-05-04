@@ -7,7 +7,15 @@ from chop.passes.graph.transforms.quantize.quantizers.integer import *
 import pdb
 from bitstring import BitArray
 from functools import partial
+from pathlib import Path
+import subprocess
 
+def get_repo_root():
+    try:
+        repo_root = subprocess.check_output(["git", "rev-parse", "--show-toplevel"]).decode().strip()
+        return Path(repo_root)
+    except Exception as e:
+        raise RuntimeError(f"Unable to find repo root: {e}")
 
 def make_quantizer(data_width: int, f_width: int):
     return partial(integer_quantizer, width=data_width, frac_width=f_width)
@@ -301,13 +309,14 @@ def generate_sv_lut(
     else:
         end = ""
     if dir is None:
+        OUTPUTDIR = get_repo_root() /"machop"/"mase_components"/"activations"/"rtl"
         lookup_to_sv_file(
             in_data_width,
             in_f_width,
             data_width,
             f_width,
             function_name,
-            f"/workspace/machop/mase_components/activations/rtl/{function_name}_lut{end}.sv",
+            f"{str(OUTPUTDIR)}/{function_name}_lut{end}.sv",
             path_with_dtype=path_with_dtype,
         )
     else:
