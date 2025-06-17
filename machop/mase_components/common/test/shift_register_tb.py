@@ -79,7 +79,7 @@ class shift_register_tb(Testbench):
             logger.info(f"DUT EXP OUT: {exp_out}")
             self.data_in_driver.load_driver(inputs)
             self.data_out_monitor.load_monitor(exp_out)
-
+            
         await Timer(1000, units="us")
         assert self.data_out_monitor.exp_queue.empty()
 
