@@ -111,4 +111,5 @@ MASE_HW_DEPS = {
         "conv",
         "activations",
     ],
+    "common/shift_register": []
 }

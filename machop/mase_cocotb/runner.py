@@ -15,6 +15,7 @@ def mase_runner(
     extra_build_args: list[str] = [],
     trace: bool = False,
     seed: int = None,
+    includes = None,
 ):
     assert type(module_param_list) == list, "Need to pass in a list of dicts!"
 
@@ -43,7 +44,16 @@ def mase_runner(
     if path.exists(build_dir):
         rmtree(build_dir)
 
-    deps = MASE_HW_DEPS[f"{group}/{module}"]
+    if includes == None:
+        try:
+            deps = MASE_HW_DEPS[f"{group}/{module}"]
+        except KeyError:
+            raise ValueError(
+            f"Dependencies for '{group}/{module}' not found in MASE_HW_DEPS, and no deps were supplied in the constructor."
+            )
+        to_include = [str(comp_path.joinpath(f"{d}/rtl/")) for d in deps]
+    else:
+        to_include = includes
 
     total_tests = 0
     total_fail = 0
@@ -56,7 +66,7 @@ def mase_runner(
         runner = get_runner(SIM)
         runner.build(
             verilog_sources=[module_path],
-            includes=[str(comp_path.joinpath(f"{d}/rtl/")) for d in deps],
+            includes=to_include,
             hdl_toplevel=module,
             build_args=[
                 # Verilator linter is overly strict.
