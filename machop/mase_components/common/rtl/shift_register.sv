@@ -42,7 +42,7 @@ module shift_register #(
     else if (!data_in_ready) begin // shifting
     
       data_out_valid <= 1'b1;
-      shift_counter -= 1;
+      shift_counter <= shift_counter - 1;
       for (int i = BUFFER_SIZE - 1; i > 0; i--) begin
         register_bank[i - 1] <= register_bank[i];
       end
