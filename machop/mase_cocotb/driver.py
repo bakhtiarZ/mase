@@ -12,17 +12,12 @@ class Driver:
     def __init__(self):
         self._pending = Event(name="Driver._pending")
         self.send_queue = Queue()
-        self._thread = None
 
         if not hasattr(self, "log"):
             self.log = SimLog("cocotb.driver.%s" % (type(self).__qualname__))
 
         # # Create an independent coroutine which can send stuff
-        # self._thread = cocotb.start_soon(self._send_thread())
-
-    def start(self):
-        if self._thread is None:
-            self._thread = cocotb.start_soon(self._send_thread())
+        self._thread = cocotb.start_soon(self._send_thread())
 
     def kill(self):
         if self._thread:

@@ -4,25 +4,53 @@ module carousel_template #(
     parameter int WIDTH_2 = 8,
     parameter int BUFFER_SIZE = 3
 ) (
-    input logic clk,
-    input logic rst,
-    
+      
     //data ports
     input logic [WIDTH_0 - 1 : 0] data_in_0,
     output logic [WIDTH_0 - 1 : 0] data_out_0,
+    input logic  data_in_valid_0,
+    output logic data_in_ready_0,
+    input logic data_out_ready_0,
+    output logic data_out_valid_0,
     input logic [WIDTH_1 - 1 : 0] data_in_1,
     output logic [WIDTH_1 - 1 : 0] data_out_1,
+    input logic  data_in_valid_1,
+    output logic data_in_ready_1,
+    input logic data_out_ready_1,
+    output logic data_out_valid_1,
     input logic [WIDTH_2 - 1 : 0] data_in_2,
     output logic [WIDTH_2 - 1 : 0] data_out_2,
-
-    input logic  data_in_valid_arr [BUFFER_SIZE],
-    output logic  data_in_ready_arr [BUFFER_SIZE],
-    input logic  data_out_ready_arr [BUFFER_SIZE],
-    output logic  data_out_valid_arr [BUFFER_SIZE]
+    input logic  data_in_valid_2,
+    output logic data_in_ready_2,
+    input logic data_out_ready_2,
+    output logic data_out_valid_2,
+    
+    input logic clk,
+    input logic rst
 );
+
   logic [WIDTH_0 - 1 : 0] register_0;
   logic [WIDTH_1 - 1 : 0] register_1;
   logic [WIDTH_2 - 1 : 0] register_2;
+  
+
+  logic [BUFFER_SIZE - 1 : 0] data_in_valid_arr, data_in_ready_arr, data_out_ready_arr, data_out_valid_arr;
+
+  // packing data control signals  
+  assign data_in_valid_arr[0] = data_in_valid_0;
+  assign data_out_valid_0 = data_out_valid_arr[0];
+  assign data_in_ready_0 = data_in_ready_arr[0];
+  assign data_out_ready_arr[0] = data_out_ready_0;
+    
+  assign data_in_valid_arr[1] = data_in_valid_1;
+  assign data_out_valid_1 = data_out_valid_arr[1];
+  assign data_in_ready_1 = data_in_ready_arr[1];
+  assign data_out_ready_arr[1] = data_out_ready_1;
+    
+  assign data_in_valid_arr[2] = data_in_valid_2;
+  assign data_out_valid_2 = data_out_valid_arr[2];
+  assign data_in_ready_2 = data_in_ready_arr[2];
+  assign data_out_ready_arr[2] = data_out_ready_2;
   
 
   logic [BUFFER_SIZE - 1 : 0] ingested;
@@ -40,20 +68,21 @@ module carousel_template #(
       if (rst)
         current_state[i] <= IDLE;
       else
-        current_state[i] <= next_state;
+        current_state[i] <= next_state[i];
     end
   end
 
   logic all_ingest, all_dispense;
   always_comb begin : nextStateLogic
-    all_ingest = &ingested_arr;
-    all_dispense = &dispensed_arr;
-    for (int i = 0; i < BUFFER_SIZE; i++) begin
-      next_state = IDLE; // avoid latching
-      if (all_ingest && current_state == IDLE)
-        next_state = SHIFT;
-      else if (all_dispense && current_state == SHIFT)
-        next_state = IDLE;
+    all_ingest = &ingested;
+    all_dispense = &dispensed;
+    for(int i=0; i < BUFFER_SIZE; i++) begin
+      if (all_ingest && current_state == IDLE) begin // we want this to latch
+        next_state[i] = SHIFT;
+      end
+      else if (all_dispense && current_state == SHIFT) begin
+        next_state[i] = IDLE;
+      end
     end
   end
 
@@ -62,8 +91,6 @@ module carousel_template #(
       data_out_1 = register_1;  
       data_out_2 = register_2;
   end
-
-  logic [BUFFER_SIZE - 1 : 0] ingested_arr, dispensed_arr;
 
   always_ff @( posedge clk ) begin : InD_Tracker
     //control
@@ -87,18 +114,18 @@ module carousel_template #(
         data_out_valid_arr[i] <= 1'b0;
         data_in_ready_arr[i] <= 1'b1;
       end
+      // control signals for each reg
       if (data_in_valid_arr[0] == 1'b1) begin 
         register_0 <= data_in_0;
       end
-      
       if (data_in_valid_arr[1] == 1'b1) begin 
         register_1 <= data_in_1;
       end
-      
       if (data_in_valid_arr[2] == 1'b1) begin 
         register_2 <= data_in_2;
       end
-      end
+
+    end
     else if (current_state == SHIFT) begin
       for (int i = 0; i < BUFFER_SIZE; i++) begin
         data_out_valid_arr[i] <= 1'b1;
