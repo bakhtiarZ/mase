@@ -9,6 +9,62 @@ from cocotb.triggers import *
 from mase_cocotb.driver import Driver
 from mase_cocotb.monitor import Monitor
 
+class StreamArrayDriver(Driver):
+    def __init__(self, clk, data, valid, ready, index) -> None:
+        super().__init__()
+        self.clk = clk
+        self.data_arr = data
+        self.valid_arr = valid
+        self.ready_arr = ready
+        self.index = index
+        self.valid_prob = 1.0
+        self.start()
+    
+    def set_valid_prob(self, prob):
+        assert prob >= 0.0 and prob <= 1.0
+        self.valid_prob = prob
+
+    async def _driver_send(self, data) -> None:
+        while True:
+            await RisingEdge(self.clk)
+            self.data.value = data
+            if random.random() > self.valid_prob:
+                self.valid.value = 0
+                continue  # Try roll random valid again at next clock
+            self.valid[self.index].value = 1
+            await ReadOnly()
+            if self.ready[self.index].value == 1:
+                self.log.debug("Sent %s" % data)
+                break
+
+        if self.send_queue.empty():
+            await RisingEdge(self.clk)
+            self.valid.value = 0
+
+class StreamArrayMonitor(Monitor):
+    def __init__(self, clk, data, valid, ready, index, check=True):
+        super().__init__(clk)
+        self.clk = clk
+        self.data = data
+        self.valid = valid
+        self.ready = ready
+        self.index = index
+        self.check = check
+        self.start()
+        
+    def _trigger(self):
+        return self.valid[self.index].value == 1 and self.ready[self.index].value == 1
+
+    def _recv(self):
+        if type(self.data.value) == list:
+            return [int(x) for x in self.data.value]
+        elif type(self.data.value) == BinaryValue:
+            return int(self.data.value)
+
+    def _check(self, got, exp):
+        if self.check:
+            if not np.equal(got, exp).all():
+                raise TestFailure("\nGot \n%s, \nExpected \n%s" % (got, exp))
 
 class StreamDriver(Driver):
     def __init__(self, clk, data, valid, ready) -> None:
@@ -39,6 +95,8 @@ class StreamDriver(Driver):
         if self.send_queue.empty():
             await RisingEdge(self.clk)
             self.valid.value = 0
+
+
 
 
 class StreamMonitor(Monitor):

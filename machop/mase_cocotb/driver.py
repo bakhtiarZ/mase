@@ -12,12 +12,17 @@ class Driver:
     def __init__(self):
         self._pending = Event(name="Driver._pending")
         self.send_queue = Queue()
+        self._thread = None
 
         if not hasattr(self, "log"):
             self.log = SimLog("cocotb.driver.%s" % (type(self).__qualname__))
 
-        # Create an independent coroutine which can send stuff
-        self._thread = cocotb.start_soon(self._send_thread())
+        # # Create an independent coroutine which can send stuff
+        # self._thread = cocotb.start_soon(self._send_thread())
+
+    def start(self):
+        if self._thread is None:
+            self._thread = cocotb.start_soon(self._send_thread())
 
     def kill(self):
         if self._thread:
@@ -29,17 +34,34 @@ class Driver:
         self._pending.set()
 
     async def _send_thread(self):
-        while True:
-            # Sleep until we have something to send
-            while self.send_queue.empty():
-                self._pending.clear()
-                await self._pending.wait()
+        try:
+            while True:
+                # Sleep until we have something to send
+                while self.send_queue.empty():
+                    self._pending.clear()
+                    await self._pending.wait()
 
-            # Send in all the queued packets,
-            # only synchronize on the first send
-            while not self.send_queue.empty():
-                transaction = self.send_queue.get()
-                await self.send(transaction)
+                # Send in all the queued packets,
+                # only synchronize on the first send
+                while not self.send_queue.empty():
+                    transaction = self.send_queue.get()
+                    await self.send(transaction)
+        except Exception as e:
+            cocotb.log.error(f"Error in _send_thread: {e}", exc_info=True)
+            raise
+
+    # async def _send_thread(self):
+    #     while True:
+    #         # Sleep until we have something to send
+    #         while self.send_queue.empty():
+    #             self._pending.clear()
+    #             await self._pending.wait()
+
+    #         # Send in all the queued packets,
+    #         # only synchronize on the first send
+    #         while not self.send_queue.empty():
+    #             transaction = self.send_queue.get()
+    #             await self.send(transaction)
 
     def clear(self):
         self.send_queue = Queue()

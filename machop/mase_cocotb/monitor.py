@@ -14,12 +14,15 @@ class Monitor:
         self.recv_queue = Queue()
         self.exp_queue = Queue()
         self.check = check
+        self._thread = None
 
         if not hasattr(self, "log"):
             self.log = SimLog("cocotb.monitor.%s" % (type(self).__qualname__))
 
-        self._thread = cocotb.start_soon(self._recv_thread())
-
+    def start(self):
+        if self._thread is None:
+            self._thread = cocotb.start_soon(self._recv_thread())
+            
     def kill(self):
         if self._thread:
             self._thread.kill()
@@ -60,3 +63,4 @@ class Monitor:
         for beat in tensor:
             self.log.info(f"Expecting output beat {beat}")
             self.expect(beat)
+

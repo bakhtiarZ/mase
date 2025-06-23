@@ -15,16 +15,15 @@ module carousel_template #(
     input logic [WIDTH_2 - 1 : 0] data_in_2,
     output logic [WIDTH_2 - 1 : 0] data_out_2,
 
-    input logic [BUFFER_SIZE - 1 : 0] data_in_valid_arr,
-    output logic [BUFFER_SIZE - 1 : 0] data_in_ready_arr,
-    input logic [BUFFER_SIZE - 1 : 0] data_out_ready_arr,
-    output logic [BUFFER_SIZE - 1 : 0] data_out_valid_arr
+    input logic  data_in_valid_arr [BUFFER_SIZE],
+    output logic  data_in_ready_arr [BUFFER_SIZE],
+    input logic  data_out_ready_arr [BUFFER_SIZE],
+    output logic  data_out_valid_arr [BUFFER_SIZE]
 );
   logic [WIDTH_0 - 1 : 0] register_0;
   logic [WIDTH_1 - 1 : 0] register_1;
   logic [WIDTH_2 - 1 : 0] register_2;
   
-  localparam REG_COUNTER_SIZE = $clog2(BUFFER_SIZE);
 
   logic [BUFFER_SIZE - 1 : 0] ingested;
   logic [BUFFER_SIZE - 1 : 0] dispensed;
@@ -75,17 +74,11 @@ module carousel_template #(
         ingested[i] <= 1'b1;
       end
       else if (data_out_ready_arr[i] == 1 && ingested[i] == 1 && current_state == SHIFT) begin 
-        data_in_ready_arr[i] = 1'b1;
-        data_out_valid_arr[i] = 1'b0;
+        data_in_ready_arr[i] <= 1'b1;
+        data_out_valid_arr[i] <= 1'b0;
         dispensed[i] <= 1'b1;
       end
     end
-    //data
-    if (data_in_valid_arr[i] == 1 && data_in_ready_arr[i] == 1 && current_state == IDLE) begin // ingestable 
-      register_0 <= data_in_0;
-      register_1 <= data_in_1;
-      register_2 <= data_in_2;
-      end
   end
 
   always_ff @( posedge clk ) begin : dataFlow

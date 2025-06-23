@@ -71,16 +71,10 @@ module carousel_template #(
         ingested[i] <= 1'b1;
       end
       else if (data_out_ready_arr[i] == 1 && ingested[i] == 1 && current_state == SHIFT) begin 
-        data_in_ready_arr[i] = 1'b1;
-        data_out_valid_arr[i] = 1'b0;
+        data_in_ready_arr[i] <= 1'b1;
+        data_out_valid_arr[i] <= 1'b0;
         dispensed[i] <= 1'b1;
       end
-    end
-    //data
-    if (data_in_valid_arr[i] == 1 && data_in_ready_arr[i] == 1 && current_state == IDLE) begin // ingestable 
-      {% for i in range(0, buffer_size) -%}  
-      register_{{i}} <= data_in_{{i}};
-      {% endfor -%}
     end
   end
 
