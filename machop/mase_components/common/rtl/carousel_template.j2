@@ -1,0 +1,111 @@
+module carousel_template #(
+    {% for width in register_widths -%}
+    parameter int WIDTH_{{ loop.index0 }} = {{ width }},
+    {% endfor -%}
+    parameter int BUFFER_SIZE = {{buffer_size}}
+) (
+    input logic clk,
+    input logic rst,
+    
+    //data ports
+    {%- for i in range(0, buffer_size) %}
+    input logic [WIDTH_{{ i }} - 1 : 0] data_in_{{ i }},
+    output logic [WIDTH_{{ i }} - 1 : 0] data_out_{{ i }},
+    {%- endfor %}
+
+    input logic [BUFFER_SIZE - 1 : 0] data_in_valid_arr,
+    output logic [BUFFER_SIZE - 1 : 0] data_in_ready_arr,
+    input logic [BUFFER_SIZE - 1 : 0] data_out_ready_arr,
+    output logic [BUFFER_SIZE - 1 : 0] data_out_valid_arr
+);
+  {% for i in range(0, buffer_size) -%}  
+  logic [WIDTH_{{i}} - 1 : 0] register_{{i}};
+  {% endfor %}
+
+  logic [BUFFER_SIZE - 1 : 0] ingested;
+  logic [BUFFER_SIZE - 1 : 0] dispensed;
+
+  typedef enum logic [1:0] {
+    IDLE,
+    SHIFT
+  } state_t;
+
+  state_t [BUFFER_SIZE - 1 : 0] current_state, next_state;
+
+  always_ff @(posedge clk) begin : stateMachine
+    for (int i = 0; i < BUFFER_SIZE; i++) begin
+      if (rst)
+        current_state[i] <= IDLE;
+      else
+        current_state[i] <= next_state;
+    end
+  end
+
+  logic all_ingest, all_dispense;
+  always_comb begin : nextStateLogic
+    all_ingest = &ingested_arr;
+    all_dispense = &dispensed_arr;
+    for (int i = 0; i < BUFFER_SIZE; i++) begin
+      next_state = IDLE; // avoid latching
+      if (all_ingest && current_state == IDLE)
+        next_state = SHIFT;
+      else if (all_dispense && current_state == SHIFT)
+        next_state = IDLE;
+    end
+  end
+
+  always_comb begin : data_out_connections
+      {%- for i in range(0, buffer_size) %}  
+      data_out_{{i}} = register_{{i}};
+      {%- endfor %}
+  end
+
+  logic [BUFFER_SIZE - 1 : 0] ingested_arr, dispensed_arr;
+
+  always_ff @( posedge clk ) begin : InD_Tracker
+    //control
+    for (int i = 0; i < BUFFER_SIZE; i++) begin
+      if (data_in_valid_arr[i] == 1 && data_in_ready_arr[i] == 1 && current_state == IDLE) begin// ingestable 
+        data_in_ready_arr[i] <= 1'b0;
+        data_out_valid_arr[i] <= 1'b1;
+        ingested[i] <= 1'b1;
+      end
+      else if (data_out_ready_arr[i] == 1 && ingested[i] == 1 && current_state == SHIFT) begin 
+        data_in_ready_arr[i] = 1'b1;
+        data_out_valid_arr[i] = 1'b0;
+        dispensed[i] <= 1'b1;
+      end
+    end
+    //data
+    if (data_in_valid_arr[i] == 1 && data_in_ready_arr[i] == 1 && current_state == IDLE) begin // ingestable 
+      {% for i in range(0, buffer_size) -%}  
+      register_{{i}} <= data_in_{{i}};
+      {% endfor -%}
+    end
+  end
+
+  always_ff @( posedge clk ) begin : dataFlow
+    if (current_state == IDLE) begin
+      for (int i = 0; i < BUFFER_SIZE; i++) begin
+        data_out_valid_arr[i] <= 1'b0;
+        data_in_ready_arr[i] <= 1'b1;
+      end
+      {%- for i in range(0, buffer_size) %}
+      if (data_in_valid_arr[{{i}}] == 1'b1) begin 
+        register_{{i}} <= data_in_{{i}};
+      end
+      {% endfor -%}
+    end
+    else if (current_state == SHIFT) begin
+      for (int i = 0; i < BUFFER_SIZE; i++) begin
+        data_out_valid_arr[i] <= 1'b1;
+        data_in_ready_arr[i] <= 1'b0;
+      end
+      {% for i in range(0, buffer_size - 1) -%}
+      register_{{i}} <= register_{{i+1}};
+      {% endfor -%}
+      register_{{buffer_size - 1}} <= register_{{0}};
+    end
+  end
+
+endmodule
