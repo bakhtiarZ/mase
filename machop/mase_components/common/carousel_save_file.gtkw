@@ -1,0 +1,40 @@
+[*]
+[*] GTKWave Analyzer v3.3.104 (w)1999-2020 BSI
+[*] Sat Jun 28 20:15:42 2025
+[*]
+[dumpfile] "/workspace/machop/mase_components/common/test/build/carousel_template/test_0/dump.fst"
+[dumpfile_mtime] "Sat Jun 28 20:13:32 2025"
+[dumpfile_size] 1893
+[savefile] "/workspace/machop/mase_components/common/carousel_save_file.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*0.000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] .
+[sst_width] 214
+[signals_width] 214
+[sst_expanded] 1
+[sst_vpaned_height] 151
+@29
+carousel_template.clk
+@28
+carousel_template.all_dispense
+carousel_template.all_ingest
+carousel_template.all_shifting
+#{carousel_template.current_state[0:2]} carousel_template.current_state[0] carousel_template.current_state[1] carousel_template.current_state[2]
+carousel_template.data_in_ready_arr[2:0]
+carousel_template.data_in_valid_arr[2:0]
+carousel_template.data_out_ready_arr[2:0]
+carousel_template.data_out_valid_arr[2:0]
+carousel_template.dispensed[2:0]
+carousel_template.holding[2:0]
+carousel_template.ingested[2:0]
+#{carousel_template.next_state[0:2]} carousel_template.next_state[0] carousel_template.next_state[1] carousel_template.next_state[2]
+@22
+carousel_template.register_0[7:0]
+carousel_template.register_1[7:0]
+carousel_template.register_2[7:0]
+@28
+carousel_template.rst
+[pattern_trace] 1
+[pattern_trace] 0
