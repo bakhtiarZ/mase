@@ -4,7 +4,10 @@ module carousel_template #(
     {% endfor -%}
     parameter int BUFFER_SIZE = {{buffer_size}}
 ) (
-      
+    //TODO 
+    //TODO: ADD WHEN SHIFTING, HOW TO GO BACK TO IDLE, next state should do this in always comb, but idk why it doesn't next state stays on shifting, it may be because i made the state_t supposedly 1 bit but it appears weirdly on the gtkwave. idk
+    //TODO
+
     //data ports
     {%- for i in range(0, buffer_size) %}
     input logic [WIDTH_{{ i }} - 1 : 0] data_in_{{ i }},
@@ -35,8 +38,9 @@ module carousel_template #(
 
   logic [BUFFER_SIZE - 1 : 0] ingested;
   logic [BUFFER_SIZE - 1 : 0] dispensed;
+  logic [BUFFER_SIZE - 1 : 0] holding;
 
-  typedef enum logic [1:0] {
+  typedef enum logic {
     IDLE,
     SHIFT
   } state_t;
@@ -45,22 +49,25 @@ module carousel_template #(
 
   always_ff @(posedge clk) begin : stateMachine
     for (int i = 0; i < BUFFER_SIZE; i++) begin
-      if (rst)
+      if (rst) begin
+        holding[i] <= 0;
         current_state[i] <= IDLE;
-      else
+      end
+      else begin
         current_state[i] <= next_state[i];
+      end
     end
   end
 
   logic all_ingest, all_dispense;
   always_comb begin : nextStateLogic
-    all_ingest = &ingested;
-    all_dispense = &dispensed;
+    all_ingest = &holding;
+    all_dispense = !&holding ;
     for(int i=0; i < BUFFER_SIZE; i++) begin
-      if (all_ingest && current_state == IDLE) begin // we want this to latch
+      if (all_ingest && current_state[i] == IDLE) begin // we want this to latch
         next_state[i] = SHIFT;
       end
-      else if (all_dispense && current_state == SHIFT) begin
+      else if (all_dispense && current_state[i] == SHIFT) begin
         next_state[i] = IDLE;
       end
     end
@@ -71,45 +78,40 @@ module carousel_template #(
       data_out_{{i}} = register_{{i}};
       {%- endfor %}
   end
-
-  always_ff @( posedge clk ) begin : InD_Tracker
-    //control
-    for (int i = 0; i < BUFFER_SIZE; i++) begin
-      if (data_in_valid_arr[i] == 1 && data_in_ready_arr[i] == 1 && current_state == IDLE) begin// ingestable 
-        data_in_ready_arr[i] <= 1'b0;
-        data_out_valid_arr[i] <= 1'b1;
-        ingested[i] <= 1'b1;
-      end
-      else if (data_out_ready_arr[i] == 1 && ingested[i] == 1 && current_state == SHIFT) begin 
-        data_in_ready_arr[i] <= 1'b1;
-        data_out_valid_arr[i] <= 1'b0;
-        dispensed[i] <= 1'b1;
-      end
-    end
-  end
-
+  logic all_shifting;
+  assign all_shifting = &current_state;
   always_ff @( posedge clk ) begin : dataFlow
-    if (current_state == IDLE) begin
-      for (int i = 0; i < BUFFER_SIZE; i++) begin
-        data_out_valid_arr[i] <= 1'b0;
-        data_in_ready_arr[i] <= 1'b1;
+    {% for i in range(0, buffer_size) %}
+    if (current_state[{{i}}] == IDLE) begin
+      if (holding[{{i}}] == 1'b0) begin 
+        data_out_valid_arr[{{i}}] <= 1'b0;
+        data_in_ready_arr[{{i}}] <= 1'b1;
+        if (data_in_valid_arr[{{i}}] == 1'b1 && data_in_ready_arr[{{i}}] == 1'b1) begin
+          holding[{{i}}] <= 1'b1;
+          register_{{i}} <= data_in_{{i}};
+          data_in_ready_arr[{{i}}] <= 1'b0;
+          data_out_valid_arr[{{i}}] <= 1'b1; 
+        end
       end
-      // control signals for each reg
-      {%- for i in range(0, buffer_size) %}
-      if (data_in_valid_arr[{{i}}] == 1'b1) begin 
-        register_{{i}} <= data_in_{{i}};
+      else begin 
+        data_out_valid_arr[{{i}}] <= 1'b1;
+        data_in_ready_arr[{{i}}] <= 1'b0;
+        if (data_out_ready_arr[{{i}}] == 1'b1 && data_out_valid_arr[{{i}}] == 1'b1) begin
+          holding[{{i}}] <= 1'b0;
+          data_out_valid_arr[{{i}}] <= 1'b0;
+          data_in_ready_arr[{{i}}] <= 1'b1;
+        end
       end
-      {%- endfor %}
-
     end
-    else if (current_state == SHIFT) begin
-      for (int i = 0; i < BUFFER_SIZE; i++) begin
-        data_out_valid_arr[i] <= 1'b1;
-        data_in_ready_arr[i] <= 1'b0;
-      end
-      {% for i in range(0, buffer_size - 1) -%}
+    {% endfor %}
+    if (all_shifting) begin
+    {%- for i in range(0, buffer_size) %}
+      data_out_valid_arr[{{i}}] <= 1'b1;
+      data_in_ready_arr[{{i}}] <= 1'b0;
+    {%- endfor %}
+      {% for i in range(0, buffer_size - 1) %}
       register_{{i}} <= register_{{i+1}};
-      {% endfor -%}
+      {%- endfor %}
       register_{{buffer_size - 1}} <= register_{{0}};
     end
   end

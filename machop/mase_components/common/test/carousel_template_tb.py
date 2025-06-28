@@ -88,47 +88,43 @@ class carousel_template_tb(Testbench):
         return expout 
 
     async def run_test(self):
-        try:
-            await self.reset()
-            logger.info(f"Reset finished")
-            self.data_out_0_monitor.ready.value = 1
-            self.data_out_1_monitor.ready.value = 1
-            self.data_out_2_monitor.ready.value = 1
-            for i in range(1):
-                # inputs = self.int_inp.tolist()
-                logger.info(f'!!£!£!£!£!£! {self.int_inp.tolist()}')
-                inputs = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-                exp_out = [[11], [12], [10]]
-                # exp_out = self.exp().tolist()
-                # exp_out.append([1,2,3,4])
-                # exp_out.append([1,2,3,4])
-                # exp_out.append([1,2,3,4])
-                # exp_out.append([1,2,3,4])
-                logger.info("Inputs and expected generated")
-                logger.info(f"DUT IN: {inputs}")
-                logger.info(f"DUT EXP OUT: {exp_out}")
-                # import pdb;
-                # pdb.set_trace()
-                self.data_in_0_driver.load_driver(inputs[0])
-                self.data_in_1_driver.load_driver(inputs[1])
-                self.data_in_2_driver.load_driver(inputs[2])
-                self.data_out_0_monitor.load_monitor(exp_out[1])
-                self.data_out_1_monitor.load_monitor(exp_out[2])
-                self.data_out_2_monitor.load_monitor(exp_out[0])
-                
-            await Timer(1000, units="us")
-            assert self.data_out_0_monitor.exp_queue.empty()
-            assert self.data_out_1_monitor.exp_queue.empty()
-            assert self.data_out_2_monitor.exp_queue.empty()
-        except Exception:
-            logger.exception("Exception in run_test")
-            raise
+        await self.reset()
+        logger.info(f"Reset finished")
+        self.data_out_0_monitor.ready.value = 1
+        self.data_out_1_monitor.ready.value = 1
+        self.data_out_2_monitor.ready.value = 1
+        for i in range(1):
+            # inputs = self.int_inp.tolist()
+            logger.info(f'!!£!£!£!£!£! {self.int_inp.tolist()}')
+            inputs = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+            exp_out = [[11, 11, 11, 11, 11, 11, 11, 11], [12, 12, 12, 11, 11, 11, 11, 11], [13, 13, 13, 11, 11, 11, 11, 11]]
+            # exp_out = self.exp().tolist()
+            # exp_out.append([1,2,3,4])
+            # exp_out.append([1,2,3,4])
+            # exp_out.append([1,2,3,4])
+            # exp_out.append([1,2,3,4])
+            logger.info("Inputs and expected generated")
+            logger.info(f"DUT IN: {inputs}")
+            logger.info(f"DUT EXP OUT: {exp_out}")
+           
+            self.data_in_0_driver.load_driver(inputs[0])
+            self.data_in_1_driver.load_driver(inputs[1])
+            self.data_in_2_driver.load_driver(inputs[2])
+            # import pdb; pdb.set_trace() 
+            self.data_out_0_monitor.load_monitor(exp_out[1])
+            self.data_out_1_monitor.load_monitor(exp_out[2])
+            self.data_out_2_monitor.load_monitor(exp_out[0])
+            
+        await Timer(10, units="us")
+        assert self.data_out_0_monitor.exp_queue.empty()
+        assert self.data_out_1_monitor.exp_queue.empty()
+        assert self.data_out_2_monitor.exp_queue.empty()
+
                 
 
 @cocotb.test()
 async def test(dut):
-    # import pdb;
-    # pdb.set_trace()
+    
     try:
         tb = carousel_template_tb(dut, dut_params)
     except Exception:
