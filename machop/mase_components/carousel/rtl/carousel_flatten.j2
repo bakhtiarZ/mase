@@ -1,0 +1,56 @@
+module carousel_flatten #(
+    parameter int WIDTH = {{ width }},
+    parameter int BUFFER_SIZE = {{ buffer_size }}
+) (
+    //data ports
+    {%- for i in range(0, buffer_size) %}
+    input logic [WIDTH - 1 : 0] data_in_{{ i }},
+    output logic [WIDTH - 1 : 0] data_out_{{ i }},
+    input logic  data_in_valid_{{ i }},
+    output logic data_in_ready_{{ i }},
+    input logic data_out_ready_{{ i }},
+    output logic data_out_valid_{{ i }},
+    {%- endfor %}
+
+    input logic clk,
+    input logic rst
+);
+
+  // Arrays to connect
+  logic [WIDTH-1:0]        data_in      [BUFFER_SIZE];
+  logic                    data_in_valid[BUFFER_SIZE];
+  logic                    data_in_ready[BUFFER_SIZE];
+  logic [WIDTH-1:0]        data_out     [BUFFER_SIZE];
+  logic                    data_out_valid[BUFFER_SIZE];
+  logic                    data_out_ready[BUFFER_SIZE];
+
+  // Flat-to-array assignments
+  {%- for i in range(0, buffer_size) %}
+  assign data_in[{{i}}]   = data_in_{{i}};
+  assign data_in_valid[{{i}}] = data_in_valid_{{i}};
+  assign data_out_ready[{{i}}]= data_out_ready_{{i}};
+  {%- endfor %}
+
+  // Core instantiation
+  carousel_core #(
+    .WIDTH(WIDTH),
+    .BUFFER_SIZE(BUFFER_SIZE)
+  ) core_inst (
+    .data_in       (data_in),
+    .data_in_valid (data_in_valid),
+    .data_in_ready (data_in_ready),
+    .data_out      (data_out),
+    .data_out_valid(data_out_valid),
+    .data_out_ready(data_out_ready),
+    .clk           (clk),
+    .rst           (rst)
+  );
+
+  // Array-to-flat assignments
+  // Flat-to-array assignments
+  {%- for i in range(0, buffer_size) %}
+  assign data_in_ready_{{i}}   = data_in_ready[{{i}}];
+  assign data_out_{{i}}       = data_out[{{i}}];
+  assign data_out_valid_{{i}}  = data_out_valid[{{i}}];
+  {%- endfor %}
+endmodule

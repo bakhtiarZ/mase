@@ -1,0 +1,43 @@
+[*]
+[*] GTKWave Analyzer v3.3.104 (w)1999-2020 BSI
+[*] Thu Jul  3 13:11:27 2025
+[*]
+[dumpfile] "/workspace/machop/mase_components/carousel/test/build/carousel_flatten/test_0/dump.fst"
+[dumpfile_mtime] "Thu Jul  3 13:08:31 2025"
+[dumpfile_size] 1459
+[savefile] "/workspace/machop/mase_components/carousel/test/carousel_save_file.gtkw"
+[timestart] 0
+[size] 1646 883
+[pos] -2027 -129
+*-15.000000 65000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] .
+[treeopen] .carousel_flatten.
+[sst_width] 276
+[signals_width] 287
+[sst_expanded] 1
+[sst_vpaned_height] 250
+@24
+carousel_flatten.clk
+@28
+#{carousel_flatten.data_in_ready[0:2]} carousel_flatten.data_in_ready[0] carousel_flatten.data_in_ready[1] carousel_flatten.data_in_ready[2]
+#{carousel_flatten.data_in_valid[0:2]} carousel_flatten.data_in_valid[0] carousel_flatten.data_in_valid[1] carousel_flatten.data_in_valid[2]
+@24
+#{carousel_flatten.data_out_valid[0:2]} carousel_flatten.data_out_valid[0] carousel_flatten.data_out_valid[1] carousel_flatten.data_out_valid[2]
+carousel_flatten.core_inst.data_out[0][7:0]
+carousel_flatten.core_inst.data_out[1][7:0]
+carousel_flatten.core_inst.data_out[2][7:0]
+@28
+#{carousel_flatten.core_inst.data_out_valid[0:2]} carousel_flatten.core_inst.data_out_valid[0] carousel_flatten.core_inst.data_out_valid[1] carousel_flatten.core_inst.data_out_valid[2]
+#{carousel_flatten.core_inst.data_out_ready[0:2]} carousel_flatten.core_inst.data_out_ready[0] carousel_flatten.core_inst.data_out_ready[1] carousel_flatten.core_inst.data_out_ready[2]
+@29
+carousel_flatten.core_inst.holding[2:0]
+@24
+carousel_flatten.core_inst.regs[0][7:0]
+carousel_flatten.core_inst.regs[1][7:0]
+carousel_flatten.core_inst.regs[2][7:0]
+carousel_flatten.core_inst.state
+carousel_flatten.core_inst.next_state
+carousel_flatten.core_inst.all_ingest
+carousel_flatten.core_inst.all_dispense
+[pattern_trace] 1
+[pattern_trace] 0
