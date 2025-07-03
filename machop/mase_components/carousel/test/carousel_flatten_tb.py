@@ -1,21 +1,17 @@
 #!/usr/bin/env python3
 import os
 import logging
-os.environ["COCOTB_LOG_LEVEL"] = "DEBUG"
-os.environ["COCOTB_DEBUG"] = "1"
 import sys
-sys.stderr = sys.stdout
+from dataclasses import dataclass
 
 import cocotb
 from cocotb.triggers import RisingEdge
 from cocotb.clock import Clock
-from cocotb.result import TestFailure
+
 from mase_cocotb.utils import clk_and_settled, get_bit
-from dataclasses import dataclass  
 from mase_cocotb.runner import mase_runner
-import torch
 from mase_cocotb.testbench import Testbench
-from mase_cocotb.interfaces.streaming import StreamDriver, StreamMonitor
+import torch
 
 # Global DUT parameters (used for both build and test)
 DUT_PARAMS = {
