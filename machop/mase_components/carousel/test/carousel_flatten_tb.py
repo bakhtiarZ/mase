@@ -57,17 +57,6 @@ class carousel_template_tb(Testbench):
             self.drivers.append(drv)
             self.monitors.append(mnt)
 
-    def _rotate_expected(self, data_list):
-        expected = []
-        buf = []
-        for d in data_list:
-            buf.append(d)
-            if len(buf) == self.buffer_size:
-                buf = buf[1:] + buf[:1]
-                expected.extend(buf)
-                buf = []
-        return expected
-
     def check_shifted(self, regs):
         logger.info(f"Register values: {[int(r) for r in regs]}")
 

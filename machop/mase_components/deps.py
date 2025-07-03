@@ -26,6 +26,7 @@ MASE_HW_DEPS = {
     "common/wrap_data": ["common"],
     "carousel/carousel_flatten": ["carousel"],
     "carousel/carousel_core_always_shift": ["carousel"],
+    "carousel/carousel_flatten_always_shift": ["carousel"],
     "common/skid_buffer": [],
     "common/carousel_template": [],
     # TODO: Geniune test case failure
