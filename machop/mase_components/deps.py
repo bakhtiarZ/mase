@@ -24,6 +24,7 @@ MASE_HW_DEPS = {
     "fixed_arithmetic/fixed_dot_product": ["fixed_arithmetic", "common"],
     "common/cut_data": ["common"],
     "common/wrap_data": ["common"],
+    "carousel/carousel_flatten": ["carousel"],
     "common/skid_buffer": [],
     "common/carousel_template": [],
     # TODO: Geniune test case failure

@@ -45,19 +45,6 @@ class Driver:
             cocotb.log.error(f"Error in _send_thread: {e}", exc_info=True)
             raise
 
-    # async def _send_thread(self):
-    #     while True:
-    #         # Sleep until we have something to send
-    #         while self.send_queue.empty():
-    #             self._pending.clear()
-    #             await self._pending.wait()
-
-    #         # Send in all the queued packets,
-    #         # only synchronize on the first send
-    #         while not self.send_queue.empty():
-    #             transaction = self.send_queue.get()
-    #             await self.send(transaction)
-
     def clear(self):
         self.send_queue = Queue()
 

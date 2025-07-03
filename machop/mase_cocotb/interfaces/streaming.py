@@ -67,13 +67,13 @@ class StreamArrayMonitor(Monitor):
                 raise TestFailure("\nGot \n%s, \nExpected \n%s" % (got, exp))
 
 class StreamDriver(Driver):
-    def __init__(self, clk, data, valid, ready) -> None:
+    def __init__(self, clk, data, valid, ready, valid_prob = 1.0) -> None:
         super().__init__()
         self.clk = clk
         self.data = data
         self.valid = valid
         self.ready = ready
-        self.valid_prob = 1.0
+        self.valid_prob = valid_prob
 
     def set_valid_prob(self, prob):
         assert prob >= 0.0 and prob <= 1.0

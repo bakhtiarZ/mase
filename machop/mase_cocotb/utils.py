@@ -1,7 +1,8 @@
 import random
 from copy import copy
 
-from cocotb.triggers import RisingEdge
+from cocotb.triggers import RisingEdge, ReadOnly, Timer
+import cocotb.log
 import torch
 from torch import Tensor
 
@@ -45,3 +46,23 @@ def floor_rounding(value, in_frac_width, out_frac_width):
     elif in_frac_width < out_frac_width:
         return value << (in_frac_width - out_frac_width)
     return value
+
+
+async def clk_and_settled(clk):
+    """
+    Wait for a rising edge on `clk` and for all signal updates to settle.
+    This ensures you observe stable post-clock values.
+    """
+    await RisingEdge(clk)
+    await ReadOnly()
+    await Timer(0)
+
+def expect(condition, msg):
+    if not condition:
+        cocotb.log.error(f"[EXPECT FAILED] {msg}")
+    else:
+        cocotb.log.info(f"[EXPECT PASSED] {msg}")
+
+def get_bit(signal, index):
+    """Access a specific bit of a flat signal."""
+    return (int(signal.value) >> index) & 1
