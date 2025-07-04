@@ -25,13 +25,15 @@ os.environ["COCOTB_LOG_LEVEL"] = "DEBUG"
 os.environ["COCOTB_DEBUG"] = "1"
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import RisingEdge, ReadOnly, Timer
+from cocotb.triggers import RisingEdge, FallingEdge, ReadOnly, Timer
 from cocotb.result import TestFailure
 from mase_cocotb.utils import clk_and_settled, get_bit
 from mase_cocotb.runner import mase_runner
 from mase_cocotb.testbench import Testbench
 from dataclasses import dataclass
 
+logger = logging.getLogger("carousel_template_tb")
+logger.setLevel(logging.DEBUG)
 # DUT parameters
 DUT_PARAMS = {
     "WIDTH": 8,
@@ -44,6 +46,19 @@ class StreamInterface:
     data: any
     valid: any
     ready: any
+
+@dataclass
+class Entry:
+    valid: any
+    data: any
+
+def get_entry(logic: int, width: int = DUT_PARAMS['WIDTH']):
+    raw_value = logic.value
+    mask = (1 << width) - 1
+    data = raw_value & mask
+    valid = raw_value >> width & 0x1
+    return Entry(valid, data)
+
 
 @cocotb.test()
 async def procedural_carousel_core_test(dut):
@@ -81,11 +96,10 @@ async def procedural_carousel_core_test(dut):
     # Check initial state
     # regs[] should be zero
     for i in range(BUFFER_SIZE):
-        assert core_inst.regs[i].value.integer == 0, f"regs[{i}] != 0 after reset"
+        assert get_entry(core_inst.entries[i]).data == 0, f"regs[{i}] != 0 after reset"
     # holding bits: use value.integer
-    holding_val = core_inst.holding.value.integer
     for i in range(BUFFER_SIZE):
-        assert ((holding_val >> i) & 1) == 0, f"holding[{i}] != 0 after reset"
+        assert get_entry(core_inst.entries[i]).valid == 0, f"entries.valid[{i}] != 0 after reset"
         assert drivers[i].ready.value == 1,   f"data_in_ready[{i}] should be 1"
         assert drivers[i].valid.value == 0,  f"data_out_valid[{i}] should be 0"
         
@@ -99,54 +113,87 @@ async def procedural_carousel_core_test(dut):
         monitors[i].ready.value = 0
     await RisingEdge(clk)
     # after one cycle
-    await Timer(0)
-    assert core_inst.regs[0].value.integer == A, "reg[0] did not ingest A"
-    holding_val = core_inst.holding.value.integer
-    assert ((holding_val >> 0) & 1) == 1, "holding[0] not set"
+    await ReadOnly()
+    assert get_entry(core_inst.entries[0]).data == A, "reg[0] did not ingest A"
+    assert get_entry(core_inst.entries[0]).valid == 1, "holding[0] not set"
     assert drivers[0].ready.value == 0, "data_in_ready[0] should go low"
     assert drivers[0].valid.value == 1, "data_out_valid[0] should be high"
+    await FallingEdge(clk)
     drivers[0].valid.value = 0
 
     # 3. Continuous shifting with backpressure
     # now allow output consume on lane 0
+    assert get_entry(core_inst.entries[0]).data == A, "not holding A anymore"
+    assert get_entry(core_inst.entries[0]).valid == 1, "not valid even when holding A"
+    
     monitors[0].ready.value = 1
-    initial = [core_inst.regs[i].value.integer for i in range(BUFFER_SIZE)]
-    for _ in range(BUFFER_SIZE):
+    initial = [get_entry(core_inst.entries[i]).data for i in range(BUFFER_SIZE)]
+    for i in range(BUFFER_SIZE):
+        if i == 1:
+            await ReadOnly()
+            assert get_entry(core_inst.entries[BUFFER_SIZE-1]).valid == 0, "A didn't dispense properly" 
+            assert get_entry(core_inst.entries[BUFFER_SIZE-1]).data == A, "A dispensed properly, but somehow lost it's value of A" 
         await RisingEdge(clk)
     # after BUFFER_SIZE shifts, original A should return
-    await Timer(0) # wait for signals to settle
-    assert core_inst.regs[0].value.integer == initial[0], "value did not rotate correctly"
+    await ReadOnly()
+    assert get_entry(core_inst.entries[0]).data == initial[0], "value did not rotate correctly"
 
     # 4. Mixed ingest and shift
     B = 0x55
+    await FallingEdge(clk)
     monitors[0].ready.value = 0
     drivers[0].valid.value = 1
     drivers[0].data.value = B
     await RisingEdge(clk)
-    # register 0 should shift previous value, not ingest B
-    assert core_inst.regs[0].value.integer != B, "B was ingested prematurely"
+    await ReadOnly()
+    # register 0 should take B rather than shift the value from register 1
+    assert get_entry(core_inst.entries[0]).valid == 1, "B is not valid"
+    assert get_entry(core_inst.entries[0]).data == B, "B was not ingested"
+    assert monitors[0].valid.value == 1, f"data out valid is not high after {B} should've been ingested"
+    await FallingEdge(clk)
     drivers[0].valid.value = 0
-
+    monitors[BUFFER_SIZE-1].ready.value = 1
+    await RisingEdge(clk)
+    await ReadOnly()
+    assert monitors[BUFFER_SIZE-1].valid.value == 1, f"data out valid is not high after {B} should've shifted"
+    assert monitors[BUFFER_SIZE-1].data.value == B, f"data out is not {B} even though it should've shifted"
+    await RisingEdge(clk) 
+    await ReadOnly() 
+    for i in range(BUFFER_SIZE):
+        assert get_entry(core_inst.entries[i]).valid == 0, f"regs[{i}] valid is HIGH when it should be LOW, with data {hex(get_entry(core_inst.entries[i]).data)}" 
     # 5. Full ring test
+    # Log the current simulation time and start of full ring stimulus
+    logger.info(f"Current simulation time: {cocotb.utils.get_sim_time('ns')} ns")
+    logger.info("Beginning full ring stimulus section")
     vals = [0x10, 0x20, 0x30]
+    await FallingEdge(clk)
     # ingest into all lanes
     for i in range(BUFFER_SIZE):
         drivers[i].valid.value = 1
         drivers[i].data.value = vals[i]
         monitors[i].ready.value = 0
     await RisingEdge(clk)
+    await ReadOnly()
+    for i in range(BUFFER_SIZE):
+        assert get_entry(core_inst.entries[i]).data == vals[i], f"regs[{i}] != {vals[i]}"
+        assert get_entry(core_inst.entries[i]).valid == 1, f"regs[{i}] valid is LOW"
     # clear valids
+    await FallingEdge(clk)
     for i in range(BUFFER_SIZE):
         drivers[i].valid.value = 0
     # rotate and consume at lane 0
-    for _ in range(BUFFER_SIZE):
-        monitors[0].ready.value = 1
-        await RisingEdge(clk)
-        await RisingEdge(clk)
-    # expected rotated
     rotated = [vals[(j+1)%BUFFER_SIZE] for j in range(BUFFER_SIZE)]
-    for j in range(BUFFER_SIZE):
-        assert core_inst.regs[j].value.integer == rotated[j], f"Lane {j} rotated incorrectly"
+    for iter in range(BUFFER_SIZE):
+        if iter != 0:
+            rotated = [rotated[(j+1)%BUFFER_SIZE] for j in range(BUFFER_SIZE)] 
+        await RisingEdge(clk)
+        await ReadOnly()
+        for j in range(BUFFER_SIZE):
+            assert hex(get_entry(core_inst.entries[j]).data) == hex(rotated[j]), f"Lane {j} rotated incorrectly, simulation time: {cocotb.utils.get_sim_time('ns')} ns"
+    # expected rotated
+    # rotated = [vals[(j+1)%BUFFER_SIZE] for j in range(BUFFER_SIZE)]
+    # for j in range(BUFFER_SIZE):
+    #     assert get_entry(core_inst.entries[j]).data == rotated[j], f"Lane {j} rotated incorrectly"
 
     cocotb.log.info("Procedural carousel_core test passed!")
 
