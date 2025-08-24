@@ -15,7 +15,7 @@ from dataclasses import dataclass
 DUT_PARAMS = {
     "DATA_WIDTH": 8,
     "INPUT_SIZE": 4,
-    "OUTPUT_SIZE": 4,
+    "OUT_SIZE": 4,
 }
 
 @dataclass

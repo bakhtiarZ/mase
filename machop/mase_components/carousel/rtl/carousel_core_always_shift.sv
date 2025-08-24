@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 module carousel_core_always_shift #(
     parameter int WIDTH = 8,
     parameter int BUFFER_SIZE = 3
