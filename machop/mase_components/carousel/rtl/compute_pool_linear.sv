@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-module mysetup #(
+module compute_pool_linear #(
     // parameters
     parameter int DATA_WIDTH = 8,
     parameter int INPUT_SIZE = 4,
@@ -11,7 +11,8 @@ module mysetup #(
     input  logic rst,
 
     output logic [OUT_WIDTH-1:0] data_out [OUT_SIZE],
-    output logic                               data_out_valid[OUT_SIZE]
+    output logic                               data_out_valid[OUT_SIZE],
+    output logic                               data_out_ready[OUT_SIZE]
 );
 
 logic [DATA_WIDTH * INPUT_SIZE-1:0] initial_weights [OUT_SIZE];
@@ -41,7 +42,7 @@ carousel_core_always_shift  #(
     .WIDTH(DATA_WIDTH*INPUT_SIZE),
     .BUFFER_SIZE(OUT_SIZE)
     // fill in other parameters
-) carousel_inst (
+) input_carousel_inst (
     .clk,
     .rst,
     .data_in(initial_weights),
@@ -83,7 +84,7 @@ fixed_dot_product #(
     .IN_WIDTH(DATA_WIDTH),
     .IN_SIZE(INPUT_SIZE),
     .WEIGHT_WIDTH(DATA_WIDTH)
-) mac_inst (
+) fixed_dot_product_inst (
     .clk,
     .rst,
     .data_in(unpacked_x),
@@ -97,9 +98,8 @@ fixed_dot_product #(
     .data_out_ready(pe_out_ready[0])
 );
 logic [OUT_WIDTH-1:0] pe_out [OUT_SIZE];
-logic                 pe_out_ready [OUT_SIZE];
 logic                 pe_out_valid [OUT_SIZE];
-assign pe_out_ready[0] = 1'b1;
+logic                 pe_out_ready [OUT_SIZE];
 
 // need to pack pe_0
 
@@ -115,10 +115,20 @@ always_ff @(posedge clk) begin
         end
     end
 end
-assign data_out = pe_out;
-assign data_out_valid = pe_out_valid;
 
-// with weights of h00000004, and h00000002, we should get output valid with 5 and 3.
-    
-    
+carousel_core_always_shift  #(
+    .WIDTH(OUT_WIDTH),
+    .BUFFER_SIZE(OUT_SIZE)
+    // fill in other parameters
+) output_carousel_inst (
+    .clk,
+    .rst,
+    .data_in(pe_out),
+    .data_in_valid(pe_out_valid),
+    .data_in_ready(pe_out_ready), 
+    .data_out(data_out),
+    .data_out_valid(data_out_valid),
+    .data_out_ready(data_out_ready)
+);
+
 endmodule
