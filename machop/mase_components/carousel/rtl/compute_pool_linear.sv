@@ -19,8 +19,10 @@ logic [DATA_WIDTH * INPUT_SIZE-1:0] initial_weights [OUT_SIZE];
 logic  initial_weights_valid [OUT_SIZE];
 initial begin
     // mega hard coding them
-    initial_weights[0] = 32'h00000403;
+    initial_weights[0] = 32'h00000101;
     initial_weights[1] = 32'h00000201;
+    initial_weights[2] = 32'h00000301;
+    initial_weights[3] = 32'h00000401;
     for (int i=0; i<OUT_SIZE; i++) begin
         initial_weights_valid[i] = 1'b1;
     end
@@ -84,7 +86,7 @@ fixed_dot_product #(
     .IN_WIDTH(DATA_WIDTH),
     .IN_SIZE(INPUT_SIZE),
     .WEIGHT_WIDTH(DATA_WIDTH)
-) fixed_dot_product_inst (
+) fixed_dot_product_inst_0 (
     .clk,
     .rst,
     .data_in(unpacked_x),
@@ -97,6 +99,25 @@ fixed_dot_product #(
     .data_out_valid(pe_out_valid[0]),
     .data_out_ready(pe_out_ready[0])
 );
+
+fixed_dot_product #(
+    .IN_WIDTH(DATA_WIDTH),
+    .IN_SIZE(INPUT_SIZE),
+    .WEIGHT_WIDTH(DATA_WIDTH)
+) fixed_dot_product_inst_2 (
+    .clk,
+    .rst,
+    .data_in(unpacked_x),
+    .data_in_valid(x_value_valid),
+    .data_in_ready(x_value_ready),
+    .weight(unpacked_weight[2]),
+    .weight_valid(carousel_out_valid[2]),
+    .weight_ready(carousel_out_ready[2]),
+    .data_out(pe_out[2]),
+    .data_out_valid(pe_out_valid[2]),
+    .data_out_ready(pe_out_ready[2])
+);
+
 logic [OUT_WIDTH-1:0] pe_out [OUT_SIZE];
 logic                 pe_out_valid [OUT_SIZE];
 logic                 pe_out_ready [OUT_SIZE];
@@ -110,11 +131,11 @@ logic                 pe_out_ready [OUT_SIZE];
 // end
 always_ff @(posedge clk) begin
     for (int i = 0; i < OUT_SIZE; i++) begin
-        if (data_out_valid[i]) begin
-            $display("data_out[%0d] = %0d", i, data_out[i]);
-        end
+        $display("[%0t] data_out[%0d] = %0d, VALID = %0d", $time, i, data_out[i], data_out_valid[i]);
     end
+    $display("\n\n");
 end
+
 
 carousel_core_always_shift  #(
     .WIDTH(OUT_WIDTH),
