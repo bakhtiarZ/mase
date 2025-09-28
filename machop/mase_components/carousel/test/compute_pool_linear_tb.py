@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import logging
 os.environ["COCOTB_LOG_LEVEL"] = "DEBUG"
