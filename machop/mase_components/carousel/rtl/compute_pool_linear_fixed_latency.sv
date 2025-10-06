@@ -30,9 +30,9 @@ initial begin
     x_value = 32'h0101;
     x_value_valid = 1;
     // turn of all slots except the first
-    for (int i=0; i<OUT_SIZE; i++) begin
-        pe_array_ready[i] = 0; 
-    end
+    // for (int i=0; i<OUT_SIZE; i++) begin
+    //     pe_array_ready[i] = 0; 
+    // end
     pe_array_ready[0] = 1;
 end
 

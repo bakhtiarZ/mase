@@ -5,14 +5,14 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
 from cocotb.result import TestFailure
-from mase_cocotb.utils import clk_and_settled, get_bit
+from mase_cocotb.utils import watch_register_changes, RegChangeMonitor, get_bit, pack_array
 from mase_cocotb.runner import mase_runner
 from mase_cocotb.testbench import Testbench
 from dataclasses import dataclass
 import numpy as np
 import torch
 
-os.environ["COCOTB_LOG_LEVEL"] = "DEBUG"
+os.environ["COCOTB_LOG_LEVEL"] = "INFO"
 os.environ["COCOTB_DEBUG"] = "1"
 logger = cocotb.log
 
@@ -29,16 +29,6 @@ class StreamInterface:
     valid: any
     ready: any
 
-def pack_array(tensor_row: torch.tensor, data_width: int):
-    mask = (1 << data_width) - 1
-    packed = 0
-    for i, e_t in enumerate(reversed(tensor_row)):
-        e = e_t.item()
-        assert e < (2**data_width - 1) - 1, f"Element at index {i} with value {e} cannot fit into {data_width} bits."
-        if e < 0:
-            e = (e + (1 << data_width)) & mask
-        packed |= (e & mask) << i * data_width
-    return packed
     
 def set_initial_conditions(dut):
     # Setting the initial weight valids to HIGH, meaning the weights can be accepted into the carousel.
@@ -53,6 +43,8 @@ def set_initial_conditions(dut):
     x = torch.tensor(
         [4, 3, 2, 1],
     )
+
+    pe_layout = [1, 0, 0, 0]
     
     def set_initial_weights_valid():
         binVal = (1 << dut.OUT_SIZE.value) - 1
@@ -76,16 +68,25 @@ def set_initial_conditions(dut):
         hexval = f"0x{dut.x_value.value.integer:0{packed_x_value_width//4}x}"
         logger.debug(f"\nSET dut.x_value to {hexval}")
     
+    def set_reg_from_array(reg, layout):
+        assert len(reg) == len(layout), "Register {reg._name} does not have equal size to array provided."
+        pe_array_ready_sig = 0
+        for i,e in enumerate(layout):
+            if e == 1:
+                pe_array_ready_sig |= 1 << i
+
     set_initial_weights_valid()
     set_initial_weights_values(weight_matrix)
     set_initial_x_valid()
     set_initial_x_values(x)
+    set_reg_from_array(dut.pe_array_ready, pe_layout)
             
 @cocotb.test()
 async def procedural_carousel_core_test(dut):
     clk = dut.clk
     rst = dut.rst
     set_initial_conditions(dut)
+    logger.info(f"!!!!!!!!!!!!!!!!!!!!!!\n!!!!!!!!!!!!!!!\n!!!!!!!!!!!!!!\n!!!!!")
     # data_in = getattr(dut, "data_in")
     # data_in_valid = getattr(dut, "data_in_valid")
     # data_in_ready = getattr(dut, "data_in_ready")
@@ -95,6 +96,14 @@ async def procedural_carousel_core_test(dut):
 
     # Start clock
     cocotb.start_soon(Clock(clk, 10, units='ns').start())
+    input_carousel_monitors = []
+    for i, entry in enumerate(dut.input_carousel_inst.entries):
+        if get_bit(dut.pe_array_ready, i) == 1:
+            mon = RegChangeMonitor(dut, entry)
+            logger.info(f"Monitor attached to slot {i} of input_carousel_inst {mon}")
+            input_carousel_monitors.append(mon)
+        else:
+            logger.info(f"dut.pe_array_ready = {dut.pe_array_ready.value}, couldn't create monitor for index {i}")
 
     # 1. Reset behavior
     rst.value = 1
