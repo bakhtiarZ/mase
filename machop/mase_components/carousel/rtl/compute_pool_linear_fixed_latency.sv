@@ -19,21 +19,21 @@ module compute_pool_linear_fixed_latency #(
 logic [DATA_WIDTH * INPUT_SIZE-1:0] initial_weights [OUT_SIZE];
 logic  initial_weights_valid [OUT_SIZE];
 initial begin
-    // mega hard coding them
-    initial_weights[0] = 32'h00000101;
-    initial_weights[1] = 32'h00000201;
-    initial_weights[2] = 32'h00000301;
-    initial_weights[3] = 32'h00000401;
-    for (int i=0; i<OUT_SIZE; i++) begin
-        initial_weights_valid[i] = 1'b1;
-    end
-    x_value = 32'h0101;
-    x_value_valid = 1;
-    // turn of all slots except the first
+    // // mega hard coding them
+    // initial_weights[0] = 32'h00000101;
+    // initial_weights[1] = 32'h00000201;
+    // initial_weights[2] = 32'h00000301;
+    // initial_weights[3] = 32'h00000401;
     // for (int i=0; i<OUT_SIZE; i++) begin
-    //     pe_array_ready[i] = 0; 
+    //     initial_weights_valid[i] = 1'b1;
     // end
-    pe_array_ready[0] = 1;
+    // x_value = 32'h0101;
+    // x_value_valid = 1;
+    // // turn of all slots except the first
+    // // for (int i=0; i<OUT_SIZE; i++) begin
+    // //     pe_array_ready[i] = 0; 
+    // // end
+    // pe_array_ready[0] = 1;
 end
 
 // each carousel slot needs to hold 4 values, so its packed
@@ -72,9 +72,6 @@ end
 logic [DATA_WIDTH * INPUT_SIZE - 1 :0] x_value; 
 logic x_value_valid ; 
 logic x_value_ready ; 
-initial begin
-    
-end
 
 logic [DATA_WIDTH-1:0] unpacked_x [INPUT_SIZE];
 always_comb begin : unpack_x

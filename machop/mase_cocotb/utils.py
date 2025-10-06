@@ -87,7 +87,7 @@ async def watch_register_changes(dut, register_name):
         await ReadOnly()
         cur = register
         if prev is None or cur != prev:
-            dut._log.debug(f"[MONITOR] {register_name} changed -> {cur} at t={cocotb.utils.get_sim_time('ns')} ns")
+            dut._log.info(f"[MONITOR] {register_name} changed -> {cur} at t={cocotb.utils.get_sim_time('ns')} ns")
             prev = cur
 
 class RegChangeMonitor:
@@ -107,5 +107,5 @@ class RegChangeMonitor:
             await ReadOnly()
             cur = self.sig.value
             if self.prev is None or cur != self.prev:
-                self.dut._log.debug(f"{self.sig._name} changed -> {cur}")
+                self.dut._log.info(f"{self.sig._name} changed -> {cur}")
                 self.prev = cur

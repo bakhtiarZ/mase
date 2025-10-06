@@ -30,21 +30,11 @@ class StreamInterface:
     ready: any
 
     
-def set_initial_conditions(dut):
-    # Setting the initial weight valids to HIGH, meaning the weights can be accepted into the carousel.
-    # Weight matrix
-    weight_matrix = torch.tensor([
-            [0, 0, 1, 1], # row 1 etc
-            [0, 0, 2, 1],
-            [0, 0, 3, 1],
-            [0, 0, 4, 1],
-    ])
-    
-    x = torch.tensor(
-        [4, 3, 2, 1],
-    )
+def set_initial_conditions(dut, initial_conds):
 
-    pe_layout = [1, 0, 0, 0]
+    weight_matrix = initial_conds['WEIGHTS']
+    x = initial_conds['X']
+    pe_layout = initial_conds['PE_LAYOUT']
     
     def set_initial_weights_valid():
         binVal = (1 << dut.OUT_SIZE.value) - 1
@@ -74,6 +64,7 @@ def set_initial_conditions(dut):
         for i,e in enumerate(layout):
             if e == 1:
                 pe_array_ready_sig |= 1 << i
+        reg.setimmediatevalue(pe_array_ready_sig)
 
     set_initial_weights_valid()
     set_initial_weights_values(weight_matrix)
@@ -85,8 +76,20 @@ def set_initial_conditions(dut):
 async def procedural_carousel_core_test(dut):
     clk = dut.clk
     rst = dut.rst
-    set_initial_conditions(dut)
-    logger.info(f"!!!!!!!!!!!!!!!!!!!!!!\n!!!!!!!!!!!!!!!\n!!!!!!!!!!!!!!\n!!!!!")
+    initial_conditions = {
+        'WEIGHTS' : torch.tensor([
+            [0, 0, 1, 1], # row 1 etc
+            [0, 0, 2, 1],
+            [0, 0, 3, 1],
+            [0, 0, 4, 1],
+        ]),
+        'X' : torch.tensor(
+            [4, 3, 2, 1],
+        ),
+        'PE_LAYOUT' : [1, 0, 0, 0],
+    }
+    set_initial_conditions(dut, initial_conditions)
+    logger.info(f"Setting these initial conditions: {initial_conditions}")
     # data_in = getattr(dut, "data_in")
     # data_in_valid = getattr(dut, "data_in_valid")
     # data_in_ready = getattr(dut, "data_in_ready")
@@ -100,10 +103,11 @@ async def procedural_carousel_core_test(dut):
     for i, entry in enumerate(dut.input_carousel_inst.entries):
         if get_bit(dut.pe_array_ready, i) == 1:
             mon = RegChangeMonitor(dut, entry)
+            mon.start()
             logger.info(f"Monitor attached to slot {i} of input_carousel_inst {mon}")
             input_carousel_monitors.append(mon)
-        else:
-            logger.info(f"dut.pe_array_ready = {dut.pe_array_ready.value}, couldn't create monitor for index {i}")
+        elif get_bit(dut.pe_array_ready, i) != initial_conditions['PE_LAYOUT'][i]:
+            logger.info(f"Could not attach monitor to PE at index [{i}]")
 
     # 1. Reset behavior
     rst.value = 1
@@ -112,6 +116,8 @@ async def procedural_carousel_core_test(dut):
     rst.value = 0
     await RisingEdge(clk)
     for i in range(60):
+        # Main test 
+
         await RisingEdge(clk)
 
 if __name__ == "__main__":
