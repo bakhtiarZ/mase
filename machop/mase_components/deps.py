@@ -25,8 +25,11 @@ MASE_HW_DEPS = {
     "common/cut_data": ["common"],
     "common/wrap_data": ["common"],
     "carousel/carousel_flatten": ["carousel"],
+    "carousel/fixed_latency_strobe": ["carousel"],
     "carousel/carousel_core_always_shift": ["carousel"],
     "carousel/carousel_flatten_always_shift": ["carousel"],
+    "carousel/compute_pool_linear": ["carousel", "fixed_arithmetic","common", "cast",],
+    "carousel/compute_pool_linear_fixed_latency": ["carousel", "fixed_arithmetic","common", "cast",],
     "common/skid_buffer": [],
     "common/carousel_template": [],
     # TODO: Geniune test case failure

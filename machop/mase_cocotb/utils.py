@@ -1,7 +1,7 @@
 import random
 from copy import copy
 
-from cocotb.triggers import RisingEdge, ReadOnly, Timer
+from cocotb.triggers import RisingEdge, ReadOnly, Timer, Edge
 import cocotb.log
 import torch
 from torch import Tensor
@@ -66,3 +66,60 @@ def expect(condition, msg):
 def get_bit(signal, index):
     """Access a specific bit of a flat signal."""
     return (int(signal.value) >> index) & 1
+
+def pack_array(tensor_row: torch.tensor, data_width: int):
+    mask = (1 << data_width) - 1
+    packed = 0
+    for i, e_t in enumerate(reversed(tensor_row)):
+        e = e_t.item()
+        assert e < (2**data_width - 1) - 1, f"Element at index {i} with value {e} cannot fit into {data_width} bits."
+        if e < 0:
+            e = (e + (1 << data_width)) & mask
+        packed |= (e & mask) << i * data_width
+    return packed
+
+async def watch_register_changes(dut, register_name):
+    prev = None
+    register = getattr(dut, register_name)
+    assert register is not None, f"Couldn't find a register with name {register}"
+    while True:
+        await Edge(register)
+        await ReadOnly()
+        cur = register
+        if prev is None or cur != prev:
+            dut._log.info(f"[MONITOR] {register_name} changed -> {cur} at t={cocotb.utils.get_sim_time('ns')} ns")
+            prev = cur
+
+def fmt_packed_vec(val, name, total_width, num_packed):
+    if val:
+        val_masked = val.integer & ((1 << total_width) - 1) # Mask the bottom 'total_width' bits
+        return f"0x{val_masked:0{total_width//4}x}"
+
+
+class RegChangeMonitor:
+    def __init__(self, dut, sig, logger_prefix = "", printer = None):
+        self.dut, self.sig = dut, sig
+        self.prev = None
+        self.printer = printer
+        self.logger_prefix = logger_prefix
+
+    def start(self):
+        cocotb.start_soon(self._run())
+    
+    def __str__(self):
+        return f"{self.dut._name}::{self.sig._name}"
+
+    def _fmt(self, val, name):
+        return self.printer(val, name) if self.printer else val
+    
+    async def _run(self):
+        while True:
+            await Edge(self.sig)
+            await ReadOnly()
+            cur = self.sig.value
+            if self.prev is None or cur != self.prev:
+                cur_fmt = self._fmt(cur, "cur")
+                prev_fmt = self._fmt(self.prev, "prev")
+                self.dut._log.info(f"{self.logger_prefix} {self.sig._name} changed -> {cur_fmt} (prev={prev_fmt})")
+                self.prev = cur
+
