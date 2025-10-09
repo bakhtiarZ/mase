@@ -90,10 +90,18 @@ async def watch_register_changes(dut, register_name):
             dut._log.info(f"[MONITOR] {register_name} changed -> {cur} at t={cocotb.utils.get_sim_time('ns')} ns")
             prev = cur
 
+def fmt_packed_vec(val, name, total_width, num_packed):
+    if val:
+        val_masked = val.integer & ((1 << total_width) - 1) # Mask the bottom 'total_width' bits
+        return f"0x{val_masked:0{total_width//4}x}"
+
+
 class RegChangeMonitor:
-    def __init__(self, dut, sig):
+    def __init__(self, dut, sig, logger_prefix = "", printer = None):
         self.dut, self.sig = dut, sig
         self.prev = None
+        self.printer = printer
+        self.logger_prefix = logger_prefix
 
     def start(self):
         cocotb.start_soon(self._run())
@@ -101,11 +109,17 @@ class RegChangeMonitor:
     def __str__(self):
         return f"{self.dut._name}::{self.sig._name}"
 
+    def _fmt(self, val, name):
+        return self.printer(val, name) if self.printer else val
+    
     async def _run(self):
         while True:
             await Edge(self.sig)
             await ReadOnly()
             cur = self.sig.value
             if self.prev is None or cur != self.prev:
-                self.dut._log.info(f"{self.sig._name} changed -> {cur}")
+                cur_fmt = self._fmt(cur, "cur")
+                prev_fmt = self._fmt(self.prev, "prev")
+                self.dut._log.info(f"{self.logger_prefix} {self.sig._name} changed -> {cur_fmt} (prev={prev_fmt})")
                 self.prev = cur
+

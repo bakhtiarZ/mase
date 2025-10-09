@@ -104,7 +104,7 @@ fixed_latency_strobe #(
     .LATENCY(OUT_SIZE * 2)
 ) fixed_latency_inst_0 (
     .clk,
-    .rst(carousel_out_valid[0] && carousel_out_ready[0]),
+    .rst,
     .data_out_valid(fixed_latency_out_0)
 );
 assign pe_out_valid[0] = fixed_dot_product_inst_0_valid_out && fixed_latency_out_0;
@@ -135,7 +135,7 @@ fixed_latency_strobe #(
     .LATENCY(OUT_SIZE * 2)
 ) fixed_latency_inst_2 (
     .clk,
-    .rst(carousel_out_valid[2] && carousel_out_ready[2]),
+    .rst,
     .data_out_valid(fixed_latency_out_2)
 );
 assign pe_out_valid[2] = fixed_dot_product_inst_2_valid_out && fixed_latency_out_2;

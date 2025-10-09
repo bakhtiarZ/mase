@@ -2,10 +2,11 @@
 import os
 import logging
 import cocotb
+from functools import partial
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
 from cocotb.result import TestFailure
-from mase_cocotb.utils import watch_register_changes, RegChangeMonitor, get_bit, pack_array
+from mase_cocotb.utils import watch_register_changes, RegChangeMonitor, get_bit, pack_array, fmt_packed_vec
 from mase_cocotb.runner import mase_runner
 from mase_cocotb.testbench import Testbench
 from dataclasses import dataclass
@@ -71,7 +72,21 @@ def set_initial_conditions(dut, initial_conds):
     set_initial_x_valid()
     set_initial_x_values(x)
     set_reg_from_array(dut.pe_array_ready, pe_layout)
-            
+
+def attach_monitors_to_carousel(dut, carousel_inst, pe_layout):
+    output_list = []
+    for i, entry in enumerate(carousel_inst.entries):
+        if get_bit(dut.pe_array_ready, i) == 1:
+            entry_bit_width = dut.INPUT_SIZE.value * dut.DATA_WIDTH.value
+            mon = RegChangeMonitor(dut, entry, logger_prefix=f"[{carousel_inst._name}]", printer=partial(fmt_packed_vec, total_width=entry_bit_width, num_packed=dut.INPUT_SIZE.value))
+            mon.start()
+            logger.info(f"Monitor attached to slot {i} of {carousel_inst._name} {mon}")
+            output_list.append(mon)
+        elif get_bit(dut.pe_array_ready, i) != pe_layout[i]:
+            logger.info(f"Could not attach monitor to PE at index [{i}] for {carousel_inst._name}")
+    return output_list
+
+
 @cocotb.test()
 async def procedural_carousel_core_test(dut):
     clk = dut.clk
@@ -96,18 +111,10 @@ async def procedural_carousel_core_test(dut):
     data_out = getattr(dut, "data_out")
     data_out_valid = getattr(dut, "data_out_valid")
     # data_out_ready = getattr(dut, "data_out_ready")
-
+    input_carousel_monitors = attach_monitors_to_carousel(dut, dut.input_carousel_inst, initial_conditions['PE_LAYOUT'])
+    output_carousel_monitors = attach_monitors_to_carousel(dut, dut.output_carousel_inst, initial_conditions['PE_LAYOUT'])
     # Start clock
     cocotb.start_soon(Clock(clk, 10, units='ns').start())
-    input_carousel_monitors = []
-    for i, entry in enumerate(dut.input_carousel_inst.entries):
-        if get_bit(dut.pe_array_ready, i) == 1:
-            mon = RegChangeMonitor(dut, entry)
-            mon.start()
-            logger.info(f"Monitor attached to slot {i} of input_carousel_inst {mon}")
-            input_carousel_monitors.append(mon)
-        elif get_bit(dut.pe_array_ready, i) != initial_conditions['PE_LAYOUT'][i]:
-            logger.info(f"Could not attach monitor to PE at index [{i}]")
 
     # 1. Reset behavior
     rst.value = 1
